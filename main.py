@@ -6,7 +6,7 @@ from torch.nn import CrossEntropyLoss
 from torch.utils.data import DataLoader, random_split
 from tqdm import tqdm
 from utils import *
-from model import ArtifactDetectionNN, EarlyStopping
+from model import ArtifactDetectionNN
 from dataset import EEGDataset, extract_features
 
 
