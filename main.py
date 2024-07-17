@@ -28,7 +28,7 @@ class EEGTrainer:
         self.train_accuracies = []
         self.val_accuracies = []
         self.best_val_loss = float('inf')
-        self.early_stopping = EarlyStopping(patience=10, min_delta=0)
+        self.early_stopping = EarlyStopping(patience=20, min_delta=0)
 
     def preprocess_data(self):
         scaler = StandardScaler()
