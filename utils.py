@@ -3,6 +3,7 @@ import logging
 from scipy.io import loadmat
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
+import argparse
 
 
 class EarlyStopping:
@@ -23,11 +24,6 @@ class EarlyStopping:
             self.counter += 1
             if self.counter >= self.patience:
                 self.early_stop = True
-
-def load_config(config_file='config.yaml'):
-    with open(config_file, 'r') as f:
-        config = yaml.safe_load(f)
-    return config
 
 def setup_logging(log_file, log_level):
     logging.basicConfig(filename=log_file, level=log_level, 
