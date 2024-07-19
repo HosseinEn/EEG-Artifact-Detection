@@ -1,4 +1,6 @@
 import os
+from datetime import datetime
+
 import torch
 import torch.optim as optim
 import matplotlib.pyplot as plt
@@ -126,6 +128,12 @@ class EEGTrainer:
             f"Precision: {test_precision:.4f}, Recall: {test_recall:.4f}"
         logging.info(r)
         print(termcolor.colored(r, 'red'))
+        with open('result.csv', 'a') as f:
+            # write the header
+            if os.stat('result.csv').st_size == 0:
+                f.write("Datetime, Test Accuracy, F1, Precision, Recall\n")
+            f.write(f"{datetime.now()}, {accuracy:.2f}, {test_f1:.4f}, {test_precision:.4f}, {test_recall:.4f}\n")
+
 
     def plot_metrics(self):
         plt.figure(figsize=(10, 5))
@@ -157,7 +165,8 @@ class EEGTrainer:
                 print("Early stopping")
                 break
         self.test()
-        self.plot_metrics()
+        if self.config['logging']['plot']:
+            self.plot_metrics()
 
 
 if __name__ == "__main__":

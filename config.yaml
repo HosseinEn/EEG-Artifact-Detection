@@ -12,6 +12,7 @@ training:
 logging:
   log_file: "training.log"
   log_level: "INFO"
+  plot: False
 
 checkpoint:
   save_path: "./checkpoints"
