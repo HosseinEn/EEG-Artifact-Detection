@@ -6,6 +6,7 @@ from torch.nn import CrossEntropyLoss
 from torch.utils.data import DataLoader, random_split
 from tqdm import tqdm
 from utils import *
+import termcolor
 from model import ArtifactDetectionNN
 from dataset import EEGDataset, extract_features
 
@@ -67,7 +68,7 @@ class EEGTrainer:
         r = f"[Training] Epoch {epoch + 1}/{self.config['training']['num_epochs']}, Loss: {avg_loss:.4f}, Accuracy: {train_acc:.4f}, F1: {train_f1:.4f}, " \
             f"Precision: {train_precision:.4f}, Recall: {train_recall:.4f}"
         logging.info(r)
-        print(r)
+        print(termcolor.colored(r, 'green'))
 
     def validate_one_epoch(self, epoch):
         self.model.eval()
@@ -124,7 +125,7 @@ class EEGTrainer:
         r = f"[Test] Loss: {avg_test_loss:.4f}, Test Accuracy: {accuracy:.2f}%, F1: {test_f1:.4f}, " \
             f"Precision: {test_precision:.4f}, Recall: {test_recall:.4f}"
         logging.info(r)
-        print(r)
+        print(termcolor.colored(r, 'red'))
 
     def plot_metrics(self):
         plt.figure(figsize=(10, 5))
