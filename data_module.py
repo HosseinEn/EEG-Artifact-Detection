@@ -65,9 +65,6 @@ class EEGDenoiseDataset(Dataset):
         # - 0 clean sample
         # - 1 EOG artifact on clean samples
         # - 2 EMG artifact on clean samples
-        # data_clean = self.load_samples(file_path.joinpath(split, "EEG_all_epochs.mat"), 0)
-        # data_eog = self.load_samples(file_path.joinpath(split, "EOG_all_epochs.mat"), 1)
-        # data_emg = self.load_samples(file_path.joinpath(split, "EMG_all_epochs.mat"), 2)
         data_clean = self.load_samples(os.path.join(file_path, "EEG_all_epochs.mat"), 0)
         data_eog = self.load_samples(os.path.join(file_path, "EOG_all_epochs.mat"), 1)
         data_emg = self.load_samples(os.path.join(file_path, "EMG_all_epochs.mat"), 2)
@@ -101,22 +98,24 @@ class EEGDenoiseDataset(Dataset):
 class EEGDenoiseDM(LightningDataModule):
     def __init__(
         self,
-        file_path: Path = Path("data"),
-        snr_db: float = None,
+        config
     ) -> None:
         super().__init__()
-        data = EEGDenoiseDataset(file_path, snr_db=snr_db)
+        data = EEGDenoiseDataset(config.datapath, snr_db=config.snr_db)
+        test_size = config.test_size
+        val_size = config.val_size
         train, self.test = torch.utils.data.random_split(
             data,
-            [int(np.floor(len(data) * 0.75)), int(np.ceil(len(data) * 0.25))],
+            [int(np.floor(len(data) * (1 - test_size))), int(np.ceil(len(data) * test_size))],
             generator=torch.Generator().manual_seed(1305),
         )
 
         self.train, self.val = torch.utils.data.random_split(
             train,
-            [int(np.floor(len(train) * 0.7)), int(np.ceil(len(train) * 0.3))],
+            [int(np.floor(len(train) * (1 - val_size))), int(np.ceil(len(train) * val_size))],
             generator=torch.Generator().manual_seed(2408),
         )
+        print(f"Train size: {len(self.train)}", f"Val size: {len(self.val)}", f"Test size: {len(self.test)}")
 
 
 

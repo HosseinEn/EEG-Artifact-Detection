@@ -170,6 +170,7 @@ class EEGTrainer:
                     print("Early stopping")
                     break
             self.plot_metrics()
+            self.test()
         elif self.config.mode == 'test':
             self.test()
 

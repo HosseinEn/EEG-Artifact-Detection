@@ -9,7 +9,7 @@ class EEGDataset(Dataset):
         # mat = loadmat(file_path)
         # X = mat['x']
         # labels = mat['y'].flatten()
-        a = EEGDenoiseDM(file_path=config.datapath, snr_db=config.snr_db)
+        a = EEGDenoiseDM(config)
 
         clean, noise, X, y = [], [], [], []
         for s in a.val:

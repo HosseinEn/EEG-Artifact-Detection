@@ -1,7 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
-file_path = './result.csv'
+file_path = './output/results.csv'
 data = pd.read_csv(file_path)
 
 # Check the data
