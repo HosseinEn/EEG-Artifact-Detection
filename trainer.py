@@ -132,8 +132,8 @@ class EEGTrainer:
         with open('result.csv', 'a') as f:
             # write the header
             if os.stat('result.csv').st_size == 0:
-                f.write("Datetime, Test Accuracy, F1, Precision, Recall, SNR\n")
-            f.write(f"{datetime.now()}, {accuracy:.2f}, {test_f1:.4f}, {test_precision:.4f}, {test_recall:.4f}, "
+                f.write("Datetime,Test Accuracy,F1,Precision,Recall,SNR\n")
+            f.write(f"{datetime.now()},{accuracy:.2f},{test_f1:.4f},{test_precision:.4f},{test_recall:.4f},"
                     f"{self.snr_value}\n")
 
 
@@ -167,8 +167,7 @@ class EEGTrainer:
                     logging.info("Early stopping")
                     print("Early stopping")
                     break
-            self.test()
-        else:
+        elif self.config.mode == 'test':
             self.test()
         if self.config.plot:
             self.plot_metrics()
