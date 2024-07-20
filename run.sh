@@ -7,7 +7,12 @@ for SNR_VALUE in $SNR_VALUES
 do
     for i in {1..1}
     do
-        python3 main.py --snr_db "$SNR_VALUE" --mode train --no_plot
+        # check if running on colab
+        if [ -d "/content" ]; then
+            python3 /content/SCEADNN/main.py --snr_db "$SNR_VALUE" --mode train --no_plot --datapath /content/SCEADNN/data --output /content/SCEADNN/output
+        else
+            python3 main.py --snr_db "$SNR_VALUE" --mode train --no_plot
+        fi
     done
 done
 
