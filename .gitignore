@@ -1,6 +1,8 @@
 *.log
 *.mat
 *.png
+log.txt
+result-*
 checkpoints
 __pycache__
 .idea
