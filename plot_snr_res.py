@@ -13,7 +13,7 @@ data_grouped = data.groupby('SNR').mean(numeric_only=True).reset_index()
 
 plt.figure(figsize=(10, 6))
 
-plt.scatter(data_grouped['SNR'], data_grouped['Test Accuracy'])
+plt.plot(data_grouped['SNR'], data_grouped['Test Accuracy'], marker='o', color='b')
 
 plt.xlabel('SNR [dB]')
 plt.xticks(data_grouped['SNR'])
