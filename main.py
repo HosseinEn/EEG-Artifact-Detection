@@ -1,10 +1,13 @@
 import argparse
 from trainer import EEGTrainer
+import warnings
+warnings.filterwarnings("ignore")
 
 
 def load_config():
     parser = argparse.ArgumentParser()
     parser.add_argument('--datapath', type=str, default='./data')
+    parser.add_argument('--outputpath', type=str, default='./output')
     parser.add_argument('--snr_db', type=float, default=None)
     parser.add_argument('--test_size', type=float, default=0.15)
     parser.add_argument('--val_size', type=float, default=0.15)
@@ -14,7 +17,7 @@ def load_config():
     parser.add_argument('--patience', type=int, default=20)
     parser.add_argument('--log_file', type=str, default='log.txt')
     parser.add_argument('--log_level', type=str, default='INFO')
-    parser.add_argument('--plot', type=bool, default=True)
+    parser.add_argument('--no_plot', default=True, action='store_false')
     parser.add_argument('--save_path', type=str, default='checkpoints')
     parser.add_argument('--mode', type=str, default='train')
     args = parser.parse_args()

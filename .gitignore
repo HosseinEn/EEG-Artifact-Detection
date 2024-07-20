@@ -3,6 +3,7 @@
 *.png
 log.txt
 result-*
+output
 checkpoints
 __pycache__
 .idea

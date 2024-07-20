@@ -33,6 +33,7 @@ class EEGTrainer:
         self.early_stopping = EarlyStopping(patience=20, min_delta=0)
         self.snr_value = self.config.snr_db
         self.mode = config.mode
+        os.makedirs(config.outputpath, exist_ok=True)
 
     def preprocess_data(self):
         scaler = StandardScaler()
@@ -129,33 +130,34 @@ class EEGTrainer:
             f"Precision: {test_precision:.4f}, Recall: {test_recall:.4f}"
         logging.info(r)
         print(termcolor.colored(r, 'red'))
-        with open('result.csv', 'a') as f:
+        res_path = os.path.join(self.config.outputpath, 'results.csv')
+        with open(res_path, 'a') as f:
             # write the header
-            if os.stat('result.csv').st_size == 0:
+            if os.stat(res_path).st_size == 0:
                 f.write("Datetime,Test Accuracy,F1,Precision,Recall,SNR\n")
             f.write(f"{datetime.now()},{accuracy:.2f},{test_f1:.4f},{test_precision:.4f},{test_recall:.4f},"
                     f"{self.snr_value}\n")
 
 
     def plot_metrics(self):
-        plt.figure(figsize=(10, 5))
+        plt.figure(figsize=(20, 5))
+        plt.subplot(1, 2, 1)
         plt.plot(self.train_losses, label='Training Loss')
         plt.plot(self.val_losses, label='Validation Loss')
         plt.xlabel('Epoch')
         plt.ylabel('Loss')
-        plt.title('Loss Curves')
+        plt.title(f'Loss Curves - SNR: {self.snr_value}')
         plt.legend()
-        plt.savefig('loss_curves.png')
-
-        plt.figure(figsize=(10, 5))
+        plt.subplot(1, 2, 2)
         plt.plot(self.train_accuracies, label='Training Accuracy')
         plt.plot(self.val_accuracies, label='Validation Accuracy')
         plt.xlabel('Epoch')
         plt.ylabel('Accuracy')
-        plt.title('Accuracy Curves')
+        plt.title(f'Accuracy Curves - SNR: {self.snr_value}')
         plt.legend()
-        plt.savefig('accuracy_curves.png')
-        plt.show()
+        plt.savefig(os.path.join(self.config.outputpath, f'combined_curves-snr{self.snr_value}.png'))
+        if self.config.no_plot:
+            plt.show()
 
     def run(self):
         if self.config.mode == 'train':
@@ -167,7 +169,7 @@ class EEGTrainer:
                     logging.info("Early stopping")
                     print("Early stopping")
                     break
+            self.plot_metrics()
         elif self.config.mode == 'test':
             self.test()
-        if self.config.plot:
-            self.plot_metrics()
+
