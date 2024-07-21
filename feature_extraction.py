@@ -19,13 +19,13 @@ def extract_features(eeg_signals):
     for signal in eeg_signals:
         wavelet_features = wavelet_transform(signal)
 
-        # ica = FastICA(n_components=1, random_state=10)
-        # ica_component = ica.fit_transform(signal.reshape(-1, 1)).flatten()
-        #
-        # ica_var = np.var(ica_component)
-        # ica_skewness = skew(ica_component)
-        # ica_kurt = kurtosis(ica_component)
-        # ica_rms = np.sqrt(np.mean(ica_component**2))
+        ica = FastICA(n_components=1, random_state=10)
+        ica_component = ica.fit_transform(signal.reshape(-1, 1)).flatten()
+
+        ica_var = np.var(ica_component)
+        ica_skewness = skew(ica_component)
+        ica_kurt = kurtosis(ica_component)
+        ica_rms = np.sqrt(np.mean(ica_component**2))
 
         var = np.var(signal)
         skewness = skew(signal)
@@ -33,9 +33,9 @@ def extract_features(eeg_signals):
         rms = np.sqrt(np.mean(signal**2))
         entropy = ant.spectral_entropy(signal, sf=512, method='welch')
 
-        # psd = power_spectral_density(signal)
+        psd = power_spectral_density(signal)
 
-        feature_vector = np.concatenate([signal])
+        feature_vector = np.concatenate([wavelet_features, [var, skewness, kurt, rms, entropy, ica_var, ica_skewness, ica_kurt, ica_rms], psd])
         features.append(feature_vector)
 
 
