@@ -1,18 +1,13 @@
 from torch.utils.data import Dataset
-from scipy.io import loadmat
 from feature_extraction import extract_features
-from data_module import EEGDenoiseDM
+from data_module import EEGDenoiseDataset
 from numpy import array
 
 class EEGDataset(Dataset):
     def __init__(self, file_path, config):
-        # mat = loadmat(file_path)
-        # X = mat['x']
-        # labels = mat['y'].flatten()
-        a = EEGDenoiseDM(config)
-
+        a = EEGDenoiseDataset(file_path=config.datapath, snr_db=config.snr_db)
         clean, noise, X, y = [], [], [], []
-        for s in a.val:
+        for i, s in enumerate(a):
             clean.append(s[0])
             noise.append(s[1])
             X.append(s[2])

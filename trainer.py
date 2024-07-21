@@ -2,7 +2,6 @@
 import termcolor
 from model import ArtifactDetectionNN
 from dataset import EEGDataset, extract_features
-from data_module import EEGDenoiseDM
 from tqdm import tqdm
 import os
 from datetime import datetime
@@ -47,6 +46,7 @@ class EEGTrainer:
         train_loader = DataLoader(train_dataset, batch_size=self.config.batch_size, shuffle=True)
         val_loader = DataLoader(val_dataset, batch_size=self.config.batch_size, shuffle=False)
         test_loader = DataLoader(test_dataset, batch_size=self.config.batch_size, shuffle=False)
+        print(f"Train size: {train_size}, Validation size: {val_size}, Test size: {test_size}")
         return train_loader, val_loader, test_loader
 
     def train_one_epoch(self, epoch):
@@ -126,7 +126,7 @@ class EEGTrainer:
         avg_test_loss = test_loss / len(self.test_loader)
         accuracy =  correct / total
         _, test_f1, test_precision, test_recall = calculate_metrics(all_test_labels, all_test_preds)
-        r = f"[Test] Loss: {avg_test_loss:.4f}, Test Accuracy: {accuracy:.2f}%, F1: {test_f1:.4f}, " \
+        r = f"[Test] Loss: {avg_test_loss:.4f}, Test Accuracy: {accuracy:.2f}, F1: {test_f1:.4f}, " \
             f"Precision: {test_precision:.4f}, Recall: {test_recall:.4f}"
         logging.info(r)
         print(termcolor.colored(r, 'red'))

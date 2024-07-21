@@ -2,13 +2,10 @@ from pathlib import Path
 from random import seed
 from typing import List, Tuple
 import numpy as np
-import torch
 from numpy import array, genfromtxt, ndarray
-from pytorch_lightning import LightningDataModule
 from scipy.stats import zscore
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import Dataset
 import scipy.io as sio
-import argparse
 import os
 
 seed(2408)
@@ -58,7 +55,6 @@ class EEGDenoiseDataset(Dataset):
     def __init__(
         self,
         file_path: Path = Path("data/"),
-        split: str = "",
         snr_db: float = None,
     ) -> None:
         # Labels are served as follows:
@@ -93,49 +89,3 @@ class EEGDenoiseDataset(Dataset):
 
     def __len__(self):
         return len(self.X)
-
-
-class EEGDenoiseDM(LightningDataModule):
-    def __init__(
-        self,
-        config
-    ) -> None:
-        super().__init__()
-        data = EEGDenoiseDataset(config.datapath, snr_db=config.snr_db)
-        test_size = config.test_size
-        val_size = config.val_size
-        train, self.test = torch.utils.data.random_split(
-            data,
-            [int(np.floor(len(data) * (1 - test_size))), int(np.ceil(len(data) * test_size))],
-            generator=torch.Generator().manual_seed(1305),
-        )
-
-        self.train, self.val = torch.utils.data.random_split(
-            train,
-            [int(np.floor(len(train) * (1 - val_size))), int(np.ceil(len(train) * val_size))],
-            generator=torch.Generator().manual_seed(2408),
-        )
-        print(f"Train size: {len(self.train)}", f"Val size: {len(self.val)}", f"Test size: {len(self.test)}")
-
-
-
-if __name__ == "__main__":
-    args = argparse.ArgumentParser()
-    args.add_argument("--snr_db", type=float, default=None)
-    args = args.parse_args()
-    a = EEGDenoiseDM(snr_db=args.snr_db)
-
-    clean, noise, x, y = [], [], [], []
-    for s in a.val:
-        clean.append(s[0])
-        noise.append(s[1])
-        x.append(s[2])
-        y.append(s[3])
-
-    clean = array(clean)
-    noise = array(noise)
-    y = array(y)
-
-    from scipy.io import savemat
-
-    savemat("val_set.mat", {"clean": clean, "noise": noise, "x": x, "y": y})
