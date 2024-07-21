@@ -1,5 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 
 file_path = './output/results.csv'
 data = pd.read_csv(file_path)
@@ -18,7 +19,7 @@ plt.plot(data_grouped['SNR'], data_grouped['Test Accuracy'], marker='o', color='
 plt.xlabel('SNR [dB]')
 plt.xticks(data_grouped['SNR'])
 plt.ylabel('Test accuracy')
-plt.yticks(range(0, 101, 5))
+plt.yticks(np.arange(0.6, 1.05, 0.05))
 plt.title('Relationship between SNR and classification accuracy')
 
 plt.grid(True)

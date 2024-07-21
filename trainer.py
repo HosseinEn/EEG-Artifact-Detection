@@ -124,7 +124,7 @@ class EEGTrainer:
                 total += test_labels.size(0)
                 correct += (predicted == test_labels).sum().item()
         avg_test_loss = test_loss / len(self.test_loader)
-        accuracy = 100 * correct / total
+        accuracy =  correct / total
         _, test_f1, test_precision, test_recall = calculate_metrics(all_test_labels, all_test_preds)
         r = f"[Test] Loss: {avg_test_loss:.4f}, Test Accuracy: {accuracy:.2f}%, F1: {test_f1:.4f}, " \
             f"Precision: {test_precision:.4f}, Recall: {test_recall:.4f}"
