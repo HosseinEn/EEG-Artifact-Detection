@@ -11,19 +11,27 @@ import matplotlib.pyplot as plt
 from torch.nn import CrossEntropyLoss
 from torch.utils.data import DataLoader, random_split
 from utils import *
+import pickle
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
 
 class EEGTrainer:
     def __init__(self, config):
         self.config = config
+        os.makedirs(config.save_path, exist_ok=True)
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         print(f'Using device: {self.device}')
         setup_logging(config.log_file, config.log_level)
         self.dataset = EEGDataset(config.datapath, config)
+        if self.config.mode == 'train':
+            self.preprocess_data()
+        else:
+            self.load_preprocessing()
         self.train_loader, self.val_loader, self.test_loader = self.split_dataset()
+        print(f'Feature shape: {self.dataset.features.shape[1]}')  # Debugging print statement
         self.model = ArtifactDetectionNN(self.dataset.features.shape[1]).to(self.device)
         self.criterion = CrossEntropyLoss()
         self.optimizer = optim.Adam(self.model.parameters(), lr=config.learning_rate)
-        os.makedirs(config.save_path, exist_ok=True)
         self.train_losses = []
         self.val_losses = []
         self.train_accuracies = []
@@ -35,8 +43,24 @@ class EEGTrainer:
         os.makedirs(config.outputpath, exist_ok=True)
 
     def preprocess_data(self):
-        scaler = StandardScaler()
-        self.dataset.features = scaler.fit_transform(self.dataset.features)
+        # scaler = StandardScaler()
+        # self.dataset.features = scaler.fit_transform(self.dataset.features)
+        # with open(os.path.join(self.config.save_path, 'scaler.pkl'), 'wb') as f:
+        #     pickle.dump(scaler, f)
+
+        pca = PCA(n_components=0.95)
+        self.dataset.features = pca.fit_transform(self.dataset.features)
+        with open(os.path.join(self.config.save_path, 'pca.pkl'), 'wb') as f:
+            pickle.dump(pca, f)
+
+    def load_preprocessing(self):
+        # with open(os.path.join(self.config.save_path, 'scaler.pkl'), 'rb') as f:
+        #     scaler = pickle.load(f)
+        # self.dataset.features = scaler.transform(self.dataset.features)
+
+        with open(os.path.join(self.config.save_path, 'pca.pkl'), 'rb') as f:
+            pca = pickle.load(f)
+        self.dataset.features = pca.transform(self.dataset.features)
 
     def split_dataset(self):
         train_size = int((1 - self.config.test_size - self.config.val_size) * len(self.dataset))
@@ -103,7 +127,8 @@ class EEGTrainer:
             logging.info(f"Model checkpoint saved at {checkpoint_path}")
 
     def test(self):
-        self.model.load_state_dict(torch.load(os.path.join(self.config.save_path, 'best_model.pth')))
+        print(f"Loading model with input dimension {self.dataset.features.shape[1]}")  # Debugging print statement
+        self.model.load_state_dict(torch.load(  os.path.join(self.config.save_path, 'best_model.pth')))
         self.model.to(self.device)
         self.model.eval()
         test_loss = 0.0

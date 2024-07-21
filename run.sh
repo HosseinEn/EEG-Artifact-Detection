@@ -1,12 +1,13 @@
 rm -rf output
-LOWER_SNR=-7
-UPPER_SNR=3
+LOWER_SNR=3
+UPPER_SNR=6
 STEP=0.5
 SNR_VALUES=$(seq $LOWER_SNR $STEP $UPPER_SNR)
 for SNR_VALUE in $SNR_VALUES
 do
     for i in {1..1}
     do
+        rm -rf checkpoints
         # check if running on colab
         if [ -d "/content" ]; then
             python3 /content/SCEADNN/main.py --snr_db "$SNR_VALUE" --mode train --no_plot --datapath /content/SCEADNN/data --output /content/SCEADNN/output
