@@ -11,7 +11,7 @@ def wavelet_transform(signal, wavelet='db4', level=4):
     coeffs = pywt.wavedec(signal, wavelet, level=level)
     return np.concatenate([c.flatten() for c in coeffs]) # coeffs[0] is the approximation and the rest are details
 
-def power_spectral_density(signal, fs=256):
+def power_spectral_density(signal, fs=512):
     freqs, psd = welch(signal, fs=fs)
     return psd
 
@@ -32,7 +32,7 @@ def extract_features(eeg_signals):
         skewness = skew(signal)
         kurt = kurtosis(signal)
         rms = np.sqrt(np.mean(signal**2))
-        entropy = ant.spectral_entropy(signal, sf=256, method='welch')
+        entropy = ant.spectral_entropy(signal, sf=512, method='welch')
 
         psd = power_spectral_density(signal)
 
