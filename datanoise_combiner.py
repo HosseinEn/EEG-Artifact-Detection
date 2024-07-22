@@ -12,7 +12,7 @@ seed(2408)
 np.random.seed(1305)
 
 
-class EEGDenoiseDataset(Dataset):
+class DataNoiseCombiner(Dataset):
     @staticmethod
     def load_samples(path, label) -> Tuple[ndarray, ndarray]:
         X = None

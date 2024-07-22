@@ -1,7 +1,7 @@
 
 import termcolor
 from model import ArtifactDetectionNN
-from dataset import EEGDataset, extract_features
+from dataset import EEGDataset
 from tqdm import tqdm
 import os
 from datetime import datetime
@@ -22,13 +22,13 @@ class EEGTrainer:
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         print(f'Using device: {self.device}')
         setup_logging(config.log_file, config.log_level)
-        self.dataset = EEGDataset(config.datapath, config)
+        self.dataset = EEGDataset(config)
         if self.config.mode == 'train':
             self.preprocess_data()
         else:
             self.load_preprocessing()
         self.train_loader, self.val_loader, self.test_loader = self.split_dataset()
-        print(f'Feature shape: {self.dataset.features.shape[1]}')  # Debugging print statement
+        print(f'Feature shape: {self.dataset.features.shape[1]}')
         self.model = ArtifactDetectionNN(self.dataset.features.shape[1]).to(self.device)
         self.criterion = CrossEntropyLoss()
         self.optimizer = optim.Adam(self.model.parameters(), lr=config.learning_rate)
@@ -43,10 +43,10 @@ class EEGTrainer:
         os.makedirs(config.outputpath, exist_ok=True)
 
     def preprocess_data(self):
-        # scaler = StandardScaler()
-        # self.dataset.features = scaler.fit_transform(self.dataset.features)
-        # with open(os.path.join(self.config.save_path, 'scaler.pkl'), 'wb') as f:
-        #     pickle.dump(scaler, f)
+        scaler = StandardScaler()
+        self.dataset.features = scaler.fit_transform(self.dataset.features)
+        with open(os.path.join(self.config.save_path, 'scaler.pkl'), 'wb') as f:
+            pickle.dump(scaler, f)
 
         pca = PCA(n_components=0.95)
         self.dataset.features = pca.fit_transform(self.dataset.features)
@@ -54,9 +54,9 @@ class EEGTrainer:
             pickle.dump(pca, f)
 
     def load_preprocessing(self):
-        # with open(os.path.join(self.config.save_path, 'scaler.pkl'), 'rb') as f:
-        #     scaler = pickle.load(f)
-        # self.dataset.features = scaler.transform(self.dataset.features)
+        with open(os.path.join(self.config.save_path, 'scaler.pkl'), 'rb') as f:
+            scaler = pickle.load(f)
+        self.dataset.features = scaler.transform(self.dataset.features)
 
         with open(os.path.join(self.config.save_path, 'pca.pkl'), 'rb') as f:
             pca = pickle.load(f)
@@ -157,7 +157,6 @@ class EEGTrainer:
         print(termcolor.colored(r, 'red'))
         res_path = os.path.join(self.config.outputpath, 'results.csv')
         with open(res_path, 'a') as f:
-            # write the header
             if os.stat(res_path).st_size == 0:
                 f.write("Datetime,Test Accuracy,F1,Precision,Recall,SNR\n")
             f.write(f"{datetime.now()},{accuracy:.2f},{test_f1:.4f},{test_precision:.4f},{test_recall:.4f},"

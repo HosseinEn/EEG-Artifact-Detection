@@ -4,7 +4,7 @@ from data_module import EEGDenoiseDataset
 from numpy import array
 
 class EEGDataset(Dataset):
-    def __init__(self, file_path, config):
+    def __init__(self, config):
         a = EEGDenoiseDataset(file_path=config.datapath, snr_db=config.snr_db)
         clean, noise, X, y = [], [], [], []
         for i, s in enumerate(a):
