@@ -1,11 +1,11 @@
 from torch.utils.data import Dataset
 from feature_extraction import extract_features
-from data_module import EEGDenoiseDataset
+from datanoise_combiner import DataNoiseCombiner
 from numpy import array
 
 class EEGDataset(Dataset):
     def __init__(self, config):
-        a = EEGDenoiseDataset(file_path=config.datapath, snr_db=config.snr_db)
+        a = DataNoiseCombiner(file_path=config.datapath, snr_db=config.snr_db)
         clean, noise, X, y = [], [], [], []
         for i, s in enumerate(a):
             clean.append(s[0])

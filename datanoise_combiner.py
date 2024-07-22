@@ -1,6 +1,6 @@
 from pathlib import Path
 from random import seed
-from typing import List, Tuple
+from typing import Tuple
 import numpy as np
 from numpy import array, genfromtxt, ndarray
 from scipy.stats import zscore
