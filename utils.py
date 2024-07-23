@@ -1,9 +1,5 @@
-import yaml
 import logging
-from scipy.io import loadmat
-from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
-import argparse
 
 
 class EarlyStopping:

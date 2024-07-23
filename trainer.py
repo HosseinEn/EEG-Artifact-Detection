@@ -1,4 +1,3 @@
-
 import termcolor
 from model import ArtifactDetectionNN
 from dataset import EEGDataset

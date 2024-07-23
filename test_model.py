@@ -1,7 +1,6 @@
 from trainer import EEGTrainer
 import numpy as np
 import argparse
-import torch
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process some integers.")
