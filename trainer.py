@@ -12,6 +12,7 @@ from torch.utils.data import DataLoader, random_split
 from utils import *
 import pickle
 from sklearn.decomposition import PCA
+from sklearn.decomposition import FastICA
 from sklearn.preprocessing import StandardScaler
 
 class EEGTrainer:
@@ -47,19 +48,29 @@ class EEGTrainer:
         with open(os.path.join(self.config.save_path, 'scaler.pkl'), 'wb') as f:
             pickle.dump(scaler, f)
 
-        pca = PCA(n_components=0.95)
-        self.dataset.features = pca.fit_transform(self.dataset.features)
-        with open(os.path.join(self.config.save_path, 'pca.pkl'), 'wb') as f:
-            pickle.dump(pca, f)
+        ica = FastICA(n_components=100, random_state=10)
+        self.dataset.features = ica.fit_transform(self.dataset.features)
+        with open(os.path.join(self.config.save_path, 'ica.pkl'), 'wb') as f:
+            pickle.dump(ica, f)
+
+
+        # pca = PCA(n_components=0.95)
+        # self.dataset.features = pca.fit_transform(self.dataset.features)
+        # with open(os.path.join(self.config.save_path, 'pca.pkl'), 'wb') as f:
+        #     pickle.dump(pca, f)
 
     def load_preprocessing(self):
         with open(os.path.join(self.config.save_path, 'scaler.pkl'), 'rb') as f:
             scaler = pickle.load(f)
         self.dataset.features = scaler.transform(self.dataset.features)
 
-        with open(os.path.join(self.config.save_path, 'pca.pkl'), 'rb') as f:
-            pca = pickle.load(f)
-        self.dataset.features = pca.transform(self.dataset.features)
+        with open(os.path.join(self.config.save_path, 'ica.pkl'), 'rb') as f:
+            ica = pickle.load(f)
+        self.dataset.features = ica.transform(self.dataset.features)
+
+        # with open(os.path.join(self.config.save_path, 'pca.pkl'), 'rb') as f:
+        #     pca = pickle.load(f)
+        # self.dataset.features = pca.transform(self.dataset.features)
 
     def split_dataset(self):
         train_size = int((1 - self.config.test_size - self.config.val_size) * len(self.dataset))
