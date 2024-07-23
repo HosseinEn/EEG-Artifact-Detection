@@ -1,6 +1,7 @@
 import termcolor
 from model import ArtifactDetectionNN
 from dataset import EEGDataset
+from datanoise_combiner import DataNoiseCombiner
 from tqdm import tqdm
 import os
 from datetime import datetime
@@ -14,6 +15,7 @@ import pickle
 from sklearn.decomposition import PCA
 from sklearn.decomposition import FastICA
 from sklearn.preprocessing import StandardScaler
+import math
 
 class EEGTrainer:
     def __init__(self, config):
@@ -22,14 +24,23 @@ class EEGTrainer:
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         print(f'Using device: {self.device}')
         setup_logging(config.log_file, config.log_level)
-        self.dataset = EEGDataset(config)
+        DataNoiseCombiner(self.config.datapath, self.config.test_size)
+        self.train_val_dataset = EEGDataset(Path(self.config.datapath) / "train_val")
+        self.test_datasets = {}
+        test_dir = Path(self.config.datapath) / "test"
+        for snr_dir in test_dir.iterdir():
+            if snr_dir.is_dir():
+                snr_value = snr_dir.name.split(' ')[-1]
+                self.test_datasets[snr_value] = EEGDataset(snr_dir)
         if self.config.mode == 'train':
             self.preprocess_data()
+            self.load_preprocessing()
         else:
             self.load_preprocessing()
-        self.train_loader, self.val_loader, self.test_loader = self.split_dataset()
-        print(f'Feature shape: {self.dataset.features.shape[1]}')
-        self.model = ArtifactDetectionNN(self.dataset.features.shape[1]).to(self.device)
+        feature_size = next(iter(self.test_datasets.values())).features.shape[1]
+        print(f'Feature shape: {feature_size}')
+        self.train_loader, self.val_loader = self.split_dataset()
+        self.model = ArtifactDetectionNN(feature_size).to(self.device)
         self.criterion = CrossEntropyLoss()
         self.optimizer = optim.Adam(self.model.parameters(), lr=config.learning_rate)
         self.train_losses = []
@@ -44,44 +55,49 @@ class EEGTrainer:
 
     def preprocess_data(self):
         scaler = StandardScaler()
-        self.dataset.features = scaler.fit_transform(self.dataset.features)
+        self.train_val_dataset.features = scaler.fit_transform(self.train_val_dataset.features)
         with open(os.path.join(self.config.save_path, 'scaler.pkl'), 'wb') as f:
             pickle.dump(scaler, f)
-
-        ica = FastICA(n_components=100, random_state=10)
-        self.dataset.features = ica.fit_transform(self.dataset.features)
-        with open(os.path.join(self.config.save_path, 'ica.pkl'), 'wb') as f:
-            pickle.dump(ica, f)
-
-
+        # ica = FastICA(n_components=100, random_state=10)
+        # self.train_val_dataset.features = ica.fit_transform(self.train_val_dataset.features)
+        # with open(os.path.join(self.config.save_path, 'ica.pkl'), 'wb') as f:
+        #     pickle.dump(ica, f)
         # pca = PCA(n_components=0.95)
-        # self.dataset.features = pca.fit_transform(self.dataset.features)
+        # self.train_val_dataset.features = pca.fit_transform(self.train_val_dataset.features)
         # with open(os.path.join(self.config.save_path, 'pca.pkl'), 'wb') as f:
         #     pickle.dump(pca, f)
 
     def load_preprocessing(self):
-        with open(os.path.join(self.config.save_path, 'scaler.pkl'), 'rb') as f:
-            scaler = pickle.load(f)
-        self.dataset.features = scaler.transform(self.dataset.features)
+        for snr, test_dataset in self.test_datasets.items():
+            with open(os.path.join(self.config.save_path, 'scaler.pkl'), 'rb') as f:
+                scaler = pickle.load(f)
+                test_dataset.features = scaler.transform(test_dataset.features)
+            # with open(os.path.join(self.config.save_path, 'ica.pkl'), 'rb') as f:
+            #     ica = pickle.load(f)
+            #     test_dataset.features = ica.transform(test_dataset.features)
+            # with open(os.path.join(self.config.save_path, 'pca.pkl'), 'rb') as f:
+            #     pca = pickle.load(f)
+            #     test_dataset.features = pca.transform(test_dataset.features)
 
-        with open(os.path.join(self.config.save_path, 'ica.pkl'), 'rb') as f:
-            ica = pickle.load(f)
-        self.dataset.features = ica.transform(self.dataset.features)
-
-        # with open(os.path.join(self.config.save_path, 'pca.pkl'), 'rb') as f:
-        #     pca = pickle.load(f)
-        # self.dataset.features = pca.transform(self.dataset.features)
 
     def split_dataset(self):
-        train_size = int((1 - self.config.test_size - self.config.val_size) * len(self.dataset))
-        val_size = int(self.config.val_size * len(self.dataset))
-        test_size = len(self.dataset) - train_size - val_size
-        train_dataset, val_dataset, test_dataset = random_split(self.dataset, [train_size, val_size, test_size])
+        whole_length = len(self.train_val_dataset) + len(next(iter(self.test_datasets.values())))
+        test_size = math.ceil(whole_length * self.config.test_size)
+        train_val_size = whole_length - test_size
+
+        val_size = math.ceil(train_val_size * self.config.val_size)
+        train_size = train_val_size - val_size
+
+        if train_size + val_size != len(self.train_val_dataset):
+            difference = len(self.train_val_dataset) - (train_size + val_size)
+            train_size += difference
+
+        train_dataset, val_dataset = random_split(self.train_val_dataset, [train_size, val_size])
+
         train_loader = DataLoader(train_dataset, batch_size=self.config.batch_size, shuffle=True)
         val_loader = DataLoader(val_dataset, batch_size=self.config.batch_size, shuffle=False)
-        test_loader = DataLoader(test_dataset, batch_size=self.config.batch_size, shuffle=False)
-        print(f"Train size: {train_size}, Validation size: {val_size}, Test size: {test_size}")
-        return train_loader, val_loader, test_loader
+
+        return train_loader, val_loader
 
     def train_one_epoch(self, epoch):
         self.model.train()
@@ -137,40 +153,59 @@ class EEGTrainer:
             logging.info(f"Model checkpoint saved at {checkpoint_path}")
 
     def test(self):
-        print(f"Loading model with input dimension {self.dataset.features.shape[1]}")  # Debugging print statement
-        self.model.load_state_dict(torch.load(  os.path.join(self.config.save_path, 'best_model.pth')))
-        self.model.to(self.device)
-        self.model.eval()
-        test_loss = 0.0
-        correct = 0
-        total = 0
-        all_test_labels = []
-        all_test_preds = []
-        with torch.no_grad():
-            for test_features, test_labels in self.test_loader:
-                test_features, test_labels = test_features.to(self.device), test_labels.to(self.device)
-                test_outputs = self.model(test_features.float())
-                loss = self.criterion(test_outputs, test_labels.long())
-                test_loss += loss.item()
+        test_accuracies = []
+        snr_values = []
+        # sort test_datasets by its string snr values as key
+        self.test_datasets = dict(sorted(self.test_datasets.items(), key=lambda x: float(x[0])))
+        for snr_value, test_dataset in self.test_datasets.items():
+            test_loader = DataLoader(test_dataset, batch_size=self.config.batch_size, shuffle=False)
+            self.model.load_state_dict(torch.load(os.path.join(self.config.save_path, 'best_model.pth')))
+            self.model.to(self.device)
+            self.model.eval()
+            test_loss = 0.0
+            correct = 0
+            total = 0
+            all_test_labels = []
+            all_test_preds = []
+            with torch.no_grad():
+                for test_features, test_labels in test_loader:
+                    test_features, test_labels = test_features.to(self.device), test_labels.to(self.device)
+                    test_outputs = self.model(test_features.float())
+                    loss = self.criterion(test_outputs, test_labels.long())
+                    test_loss += loss.item()
+                    _, test_preds = torch.max(test_outputs, 1)
+                    all_test_labels.extend(test_labels.cpu().numpy())
+                    all_test_preds.extend(test_preds.cpu().numpy())
+                    total += test_labels.size(0)
+                    correct += (test_preds == test_labels).sum().item()
+            test_acc, test_f1, test_precision, test_recall = calculate_metrics(all_test_labels, all_test_preds)
+            test_accuracies.append(test_acc)
+            snr_values.append(snr_value)
+            avg_test_loss = test_loss / len(test_loader)
+            r = f"[Test] SNR: {snr_value}, Loss: {avg_test_loss:.4f}, Accuracy: {test_acc:.4f}, F1: {test_f1:.4f}, " \
+                f"Precision: {test_precision:.4f}, Recall: {test_recall:.4f}"
+            logging.info(r)
+            print(r)
+            res_path = os.path.join(self.config.outputpath, 'results.csv')
+            with open(res_path, 'a') as f:
+                if os.stat(res_path).st_size == 0:
+                    f.write('SNR,Accuracy,F1,Precision,Recall\n')
+                f.write(f'{snr_value},{test_acc},{test_f1},{test_precision},{test_recall}\n')
 
-                all_test_labels.extend(test_labels.cpu().numpy())
-                _, predicted = torch.max(test_outputs.data, 1)
-                all_test_preds.extend(predicted.cpu().numpy())
-                total += test_labels.size(0)
-                correct += (predicted == test_labels).sum().item()
-        avg_test_loss = test_loss / len(self.test_loader)
-        accuracy =  correct / total
-        _, test_f1, test_precision, test_recall = calculate_metrics(all_test_labels, all_test_preds)
-        r = f"[Test] Loss: {avg_test_loss:.4f}, Test Accuracy: {accuracy:.2f}, F1: {test_f1:.4f}, " \
-            f"Precision: {test_precision:.4f}, Recall: {test_recall:.4f}"
-        logging.info(r)
-        print(termcolor.colored(r, 'red'))
-        res_path = os.path.join(self.config.outputpath, 'results.csv')
-        with open(res_path, 'a') as f:
-            if os.stat(res_path).st_size == 0:
-                f.write("Datetime,Test Accuracy,F1,Precision,Recall,SNR\n")
-            f.write(f"{datetime.now()},{accuracy:.2f},{test_f1:.4f},{test_precision:.4f},{test_recall:.4f},"
-                    f"{self.snr_value}\n")
+        # plot the accuracy based on SNR values
+        plt.figure(figsize=(10, 5))
+        plt.plot(snr_values, test_accuracies, marker='o', color='b')
+        plt.xlabel('SNR [dB]')
+        plt.xticks(snr_values)
+        plt.ylabel('Test accuracy')
+        plt.yticks(np.arange(0.6, 1.05, 0.05))
+        plt.title('Relationship between SNR and classification accuracy')
+        plt.grid(True)
+        plt.savefig(os.path.join(self.config.outputpath, 'snr_accuracy.png'))
+        if self.config.no_plot:
+            plt.show()
+
+
 
 
     def plot_metrics(self):
