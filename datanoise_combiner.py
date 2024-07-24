@@ -7,89 +7,112 @@ from scipy.stats import zscore
 from torch.utils.data import Dataset
 import scipy.io as sio
 import os
+import argparse
 from utils import combine_waveforms
 
 seed(2408)
 np.random.seed(1305)
 
 class DataNoiseCombiner:
-    def load_samples(self, path, label=None) -> Tuple[ndarray, ndarray]:
-        X = None
+    def __init__(self, config):
+        self.config = config
+        self.data_clean = self.load_samples(os.path.join(config.datapath, "EEG_all_epochs.mat"), 0)
+        self.data_eog = self.load_samples(os.path.join(config.datapath, "EOG_all_epochs.mat"), 1)
+        self.data_emg = self.load_samples(os.path.join(config.datapath, "EMG_all_epochs.mat"), 2)
+
+        self.clean_indices = self.shuffle_indices(len(self.data_clean[0]))
+        self.eog_indices = self.shuffle_indices(len(self.data_eog[0]))
+        self.emg_indices = self.shuffle_indices(len(self.data_emg[0]))
+
+        self.process_and_save_data()
+
+    def load_samples(self, path, label=None):
         path = Path(path)
         if path.suffix == ".mat":
-            X = sio.loadmat(path)
-            for key, value in X.items():
-                if isinstance(value, np.ndarray):
-                    X = value
-                    break
+            data = sio.loadmat(path)
+            X = next(value for value in data.values() if isinstance(value, np.ndarray))
         elif path.suffix == ".csv":
             X = genfromtxt(path, delimiter=",")
         elif path.suffix == ".npy":
             X = np.load(path)
-        y = [label] * len(X) if label is not None else None
+        else:
+            raise ValueError(f"Unsupported file type: {path.suffix}")
 
-        return X, array(y) if y is not None else None
+        y = array([label] * len(X)) if label is not None else None
+        return X, y
 
+    @staticmethod
+    def shuffle_indices(length):
+        indices = np.arange(length)
+        np.random.shuffle(indices)
+        return indices
 
-    def __init__(self, file_path: Path = Path("data/"), test_ratio = None, config = None):
-        data_clean = self.load_samples(os.path.join(file_path, "EEG_all_epochs.mat"), 0)
-        data_eog = self.load_samples(os.path.join(file_path, "EOG_all_epochs.mat"), 1)
-        data_emg = self.load_samples(os.path.join(file_path, "EMG_all_epochs.mat"), 2)
+    def split_indices(self, indices, test_size, val_size):
+        test_size = int(test_size * len(indices))
+        val_size = int(val_size * len(indices))
+        test_indices = indices[:test_size]
+        val_indices = indices[test_size:test_size + val_size]
+        training_indices = indices[test_size + val_size:]
+        return test_indices, val_indices, training_indices
 
-        clean_indices = np.arange(len(data_clean[0]))
-        np.random.shuffle(clean_indices)
+    def save_data(self, X, y, data_type, snr_type=None):
+        if snr_type is not None:
+            directory = Path(self.config.datapath) / data_type / snr_type
+        else:
+            directory = Path(self.config.datapath) / data_type
+        directory.mkdir(parents=True, exist_ok=True)
+        np.save(directory / "X.npy", X)
+        np.save(directory / "Y.npy", y)
 
-        eog_indices = np.arange(len(data_eog[0]))
-        np.random.shuffle(eog_indices)
+    def combine_and_save(self, clean_indices, noise_indices, data_clean, data_noise, snr, data_type):
+        combined_data = combine_waveforms(
+            (data_clean[0][clean_indices], data_clean[0][clean_indices]),
+            (data_noise[0][noise_indices], data_noise[1][noise_indices]), snr_db=snr
+        )
+        X, y = combined_data[0], combined_data[1]
+        return X, y
 
-        emg_indices = np.arange(len(data_emg[0]))
-        np.random.shuffle(emg_indices)
+    def process_and_save_data(self):
+        clean_test_indices, clean_val_indices, clean_training_indices = self.split_indices(
+            self.clean_indices, self.config.test_size, self.config.val_size)
+        eog_test_indices, eog_val_indices, eog_training_indices = self.split_indices(
+            self.eog_indices, self.config.test_size, self.config.val_size)
+        emg_test_indices, emg_val_indices, emg_training_indices = self.split_indices(
+            self.emg_indices, self.config.test_size, self.config.val_size)
 
+        for snr in np.arange(self.config.lower_snr, self.config.higher_snr, 0.5):
+            X_eog, y_eog = self.combine_and_save(clean_test_indices, eog_test_indices, self.data_clean, self.data_eog, snr, "test")
+            X_emg, y_emg = self.combine_and_save(clean_test_indices, emg_test_indices, self.data_clean, self.data_emg, snr, "test")
+            X_clean, y_clean = self.data_clean[0][clean_test_indices], self.data_clean[1][clean_test_indices]
 
-        clean_test_size = int(test_ratio * len(clean_indices))
-        clean_test_indices = clean_indices[:clean_test_size]
-        remaining_clean_indices = clean_indices[clean_test_size:]
+            X = np.concatenate((X_eog, X_emg, X_clean), axis=0)
+            y = np.concatenate((y_eog, y_emg, y_clean), axis=0)
+            self.save_data(X, y, "test", f"snr {snr}")
 
-        eog_test_size = int(test_ratio * len(eog_indices))
-        eog_test_indices = eog_indices[:eog_test_size]
-        remaining_eog_indices = eog_indices[eog_test_size:]
+        X_eog, y_eog = self.combine_and_save(clean_val_indices, eog_val_indices, self.data_clean, self.data_eog, None, "val")
+        X_emg, y_emg = self.combine_and_save(clean_val_indices, emg_val_indices, self.data_clean, self.data_emg, None, "val")
+        X_clean, y_clean = self.data_clean[0][clean_val_indices], self.data_clean[1][clean_val_indices]
 
-        emg_test_size = int(test_ratio * len(emg_indices))
-        emg_test_indices = emg_indices[:emg_test_size]
-        remaining_emg_indices = emg_indices[emg_test_size:]
+        X = np.concatenate((X_eog, X_emg, X_clean), axis=0)
+        y = np.concatenate((y_eog, y_emg, y_clean), axis=0)
+        self.save_data(X, y, "val")
 
-        test_dir = Path(file_path) / "test"
-        test_dir.mkdir(exist_ok=True)
-        for snr in np.arange(config.lower_snr, config.higher_snr, 0.5):
-            combined_eog = combine_waveforms((data_clean[0][clean_test_indices], data_clean[0][clean_test_indices]),
-                                             (data_eog[0][eog_test_indices],data_eog[1][eog_test_indices]), snr_db=snr)
-            combined_emg = combine_waveforms((data_clean[0][clean_test_indices], data_clean[0][clean_test_indices]),
-                                             (data_emg[0][emg_test_indices],data_emg[1][emg_test_indices]), snr_db=snr)
-            combined_clean = (data_clean[0][clean_test_indices], data_clean[1][clean_test_indices])
+        X_eog, y_eog = self.combine_and_save(clean_training_indices, eog_training_indices, self.data_clean, self.data_eog, None, "train")
+        X_emg, y_emg = self.combine_and_save(clean_training_indices, emg_training_indices, self.data_clean, self.data_emg, None, "train")
+        X_clean, y_clean = self.data_clean[0][clean_training_indices], self.data_clean[1][clean_training_indices]
 
-
-            X = np.concatenate((combined_eog[0], combined_emg[0], combined_clean[0]), axis=0)
-            y = np.concatenate((combined_eog[1], combined_emg[1], combined_clean[1]), axis=0)
-
-            snr_dir = Path(file_path) / "test" / f"snr {snr}"
-            snr_dir.mkdir(exist_ok=True)
-            np.save(os.path.join(file_path, "test", f"snr {snr}", f"X.npy"), X)
-            np.save(os.path.join(file_path, "test", f"snr {snr}", f"Y.npy"), y)
-
-        combined_eog = combine_waveforms((data_clean[0][remaining_clean_indices], data_clean[0][remaining_clean_indices]),
-                                         (data_eog[0][remaining_eog_indices],data_eog[1][remaining_eog_indices]), snr_db=None)
-        combined_emg = combine_waveforms((data_clean[0][remaining_clean_indices], data_clean[0][remaining_clean_indices]),
-                                         (data_emg[0][remaining_emg_indices],data_emg[1][remaining_emg_indices]), snr_db=None)
-        combined_clean = (data_clean[0][remaining_clean_indices], data_clean[1][remaining_clean_indices])
-
-        X = np.concatenate((combined_eog[0], combined_emg[0], combined_clean[0]), axis=0)
-        y = np.concatenate((combined_eog[1], combined_emg[1], combined_clean[1]), axis=0)
-
-        train_dir = Path(file_path) / "train_val"
-        train_dir.mkdir(exist_ok=True)
-        np.save(os.path.join(file_path, "train_val", "X.npy"), X)
-        np.save(os.path.join(file_path, "train_val", "Y.npy"), y)
-
+        X = np.concatenate((X_eog, X_emg, X_clean), axis=0)
+        y = np.concatenate((y_eog, y_emg, y_clean), axis=0)
+        self.save_data(X, y, "train")
 
 if __name__ == "__main__":
-    DataNoiseCombiner()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--datapath', type=str, default='./data')
+    parser.add_argument('--lower_snr', type=float, default=-7)
+    parser.add_argument('--higher_snr', type=float, default=4.5)
+    parser.add_argument('--test_size', type=float, default=0.25)
+    parser.add_argument('--val_size', type=float, default=0.2)
+    args = parser.parse_args()
+    combiner = DataNoiseCombiner(args)
+
+

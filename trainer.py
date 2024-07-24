@@ -3,8 +3,6 @@ from model import ArtifactDetectionNN
 from dataset import EEGDataset
 from datanoise_combiner import DataNoiseCombiner
 from tqdm import tqdm
-import os
-from datetime import datetime
 import torch
 import torch.optim as optim
 import matplotlib.pyplot as plt
@@ -15,7 +13,6 @@ import pickle
 from sklearn.decomposition import PCA
 from sklearn.decomposition import FastICA
 from sklearn.preprocessing import StandardScaler
-import math
 
 class EEGTrainer:
     def __init__(self, config):
@@ -24,8 +21,9 @@ class EEGTrainer:
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         print(f'Using device: {self.device}')
         setup_logging(config.log_file, config.log_level)
-        DataNoiseCombiner(self.config.datapath, self.config.test_size, config)
-        self.train_val_dataset = EEGDataset(Path(self.config.datapath) / "train_val")
+        DataNoiseCombiner(config)
+        self.train_dataset = EEGDataset(Path(self.config.datapath) / "train")
+        self.val_dataset = EEGDataset(Path(self.config.datapath) / "val")
         self.test_datasets = {}
         test_dir = Path(self.config.datapath) / "test"
         for snr_dir in test_dir.iterdir():
@@ -55,17 +53,22 @@ class EEGTrainer:
 
     def preprocess_data(self):
         scaler = StandardScaler()
-        self.train_val_dataset.features = scaler.fit_transform(self.train_val_dataset.features)
+        self.train_dataset.features = scaler.fit_transform(self.train_dataset.features)
         with open(os.path.join(self.config.save_path, 'scaler.pkl'), 'wb') as f:
             pickle.dump(scaler, f)
+        self.val_dataset.features = scaler.transform(self.val_dataset.features)
+
         # ica = FastICA(n_components=100, random_state=10)
-        # self.train_val_dataset.features = ica.fit_transform(self.train_val_dataset.features)
+        # self.train_dataset.features = ica.fit_transform(self.train_dataset.features)
         # with open(os.path.join(self.config.save_path, 'ica.pkl'), 'wb') as f:
         #     pickle.dump(ica, f)
-        pca = PCA(n_components=0.95)
-        self.train_val_dataset.features = pca.fit_transform(self.train_val_dataset.features)
-        with open(os.path.join(self.config.save_path, 'pca.pkl'), 'wb') as f:
-            pickle.dump(pca, f)
+        # self.val_dataset.features = ica.transform(self.val_dataset.features)
+
+        # pca = PCA(n_components=0.95)
+        # self.train_dataset.features = pca.fit_transform(self.train_dataset.features)
+        # with open(os.path.join(self.config.save_path, 'pca.pkl'), 'wb') as f:
+        #     pickle.dump(pca, f)
+        # self.val_dataset.features = pca.transform(self.val_dataset.features)
 
     def load_preprocessing(self):
         for snr, test_dataset in self.test_datasets.items():
@@ -75,28 +78,14 @@ class EEGTrainer:
             # with open(os.path.join(self.config.save_path, 'ica.pkl'), 'rb') as f:
             #     ica = pickle.load(f)
             #     test_dataset.features = ica.transform(test_dataset.features)
-            with open(os.path.join(self.config.save_path, 'pca.pkl'), 'rb') as f:
-                pca = pickle.load(f)
-                test_dataset.features = pca.transform(test_dataset.features)
+            # with open(os.path.join(self.config.save_path, 'pca.pkl'), 'rb') as f:
+            #     pca = pickle.load(f)
+            #     test_dataset.features = pca.transform(test_dataset.features)
 
 
     def split_dataset(self):
-        whole_length = len(self.train_val_dataset) + len(next(iter(self.test_datasets.values())))
-        test_size = math.ceil(whole_length * self.config.test_size)
-        train_val_size = whole_length - test_size
-
-        val_size = math.ceil(train_val_size * self.config.val_size)
-        train_size = train_val_size - val_size
-
-        if train_size + val_size != len(self.train_val_dataset):
-            difference = len(self.train_val_dataset) - (train_size + val_size)
-            train_size += difference
-
-        train_dataset, val_dataset = random_split(self.train_val_dataset, [train_size, val_size])
-
-        train_loader = DataLoader(train_dataset, batch_size=self.config.batch_size, shuffle=True)
-        val_loader = DataLoader(val_dataset, batch_size=self.config.batch_size, shuffle=False)
-
+        train_loader = DataLoader(self.train_dataset, batch_size=self.config.batch_size, shuffle=True)
+        val_loader = DataLoader(self.val_dataset, batch_size=self.config.batch_size, shuffle=False)
         return train_loader, val_loader
 
     def train_one_epoch(self, epoch):
