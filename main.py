@@ -14,6 +14,8 @@ def load_config():
     parser.add_argument('--num_epochs', type=int, default=100)
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--learning_rate', type=float, default=0.001)
+    parser.add_argument('--lower_snr', type=float, default=-7)
+    parser.add_argument('--higher_snr', type=float, default=4.5)
     parser.add_argument('--patience', type=int, default=20)
     parser.add_argument('--log_file', type=str, default='log.txt')
     parser.add_argument('--log_level', type=str, default='INFO')

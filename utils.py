@@ -55,7 +55,7 @@ def combine_waveforms(clean, noise, snr_db):
         lambda_snr = rms(clean_EEG) / rms(noise_EEG) / 10 ** (snr_db / 20)
         lambda_snr = np.expand_dims(lambda_snr, 1)
 
-        combined_data = zscore(clean_EEG + lambda_snr * noise_EEG, axis=1)
+        combined_data = clean_EEG + lambda_snr * noise_EEG
         labels = array([noise[1][0]] * len(noise_EEG))
 
         return (combined_data, labels)

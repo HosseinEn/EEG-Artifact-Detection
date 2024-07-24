@@ -31,7 +31,7 @@ class DataNoiseCombiner:
         return X, array(y) if y is not None else None
 
 
-    def __init__(self, file_path: Path = Path("data/"), test_ratio = None):
+    def __init__(self, file_path: Path = Path("data/"), test_ratio = None, config = None):
         data_clean = self.load_samples(os.path.join(file_path, "EEG_all_epochs.mat"), 0)
         data_eog = self.load_samples(os.path.join(file_path, "EOG_all_epochs.mat"), 1)
         data_emg = self.load_samples(os.path.join(file_path, "EMG_all_epochs.mat"), 2)
@@ -60,12 +60,11 @@ class DataNoiseCombiner:
 
         test_dir = Path(file_path) / "test"
         test_dir.mkdir(exist_ok=True)
-        for snr in np.arange(-7, 4.5, 0.5):
+        for snr in np.arange(config.lower_snr, config.higher_snr, 0.5):
             combined_eog = combine_waveforms((data_clean[0][clean_test_indices], data_clean[0][clean_test_indices]),
                                              (data_eog[0][eog_test_indices],data_eog[1][eog_test_indices]), snr_db=snr)
             combined_emg = combine_waveforms((data_clean[0][clean_test_indices], data_clean[0][clean_test_indices]),
                                              (data_emg[0][emg_test_indices],data_emg[1][emg_test_indices]), snr_db=snr)
-            # combined_clean = (zscore(data_clean[0][clean_test_indices], axis=1), data_clean[1][clean_test_indices])
             combined_clean = (data_clean[0][clean_test_indices], data_clean[1][clean_test_indices])
 
 
@@ -81,7 +80,7 @@ class DataNoiseCombiner:
                                          (data_eog[0][remaining_eog_indices],data_eog[1][remaining_eog_indices]), snr_db=None)
         combined_emg = combine_waveforms((data_clean[0][remaining_clean_indices], data_clean[0][remaining_clean_indices]),
                                          (data_emg[0][remaining_emg_indices],data_emg[1][remaining_emg_indices]), snr_db=None)
-        combined_clean = (zscore(data_clean[0][remaining_clean_indices], axis=1), data_clean[1][remaining_clean_indices])
+        combined_clean = (data_clean[0][remaining_clean_indices], data_clean[1][remaining_clean_indices])
 
         X = np.concatenate((combined_eog[0], combined_emg[0], combined_clean[0]), axis=0)
         y = np.concatenate((combined_eog[1], combined_emg[1], combined_clean[1]), axis=0)

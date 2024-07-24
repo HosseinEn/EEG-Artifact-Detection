@@ -24,7 +24,7 @@ class EEGTrainer:
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         print(f'Using device: {self.device}')
         setup_logging(config.log_file, config.log_level)
-        DataNoiseCombiner(self.config.datapath, self.config.test_size)
+        DataNoiseCombiner(self.config.datapath, self.config.test_size, config)
         self.train_val_dataset = EEGDataset(Path(self.config.datapath) / "train_val")
         self.test_datasets = {}
         test_dir = Path(self.config.datapath) / "test"
@@ -62,10 +62,10 @@ class EEGTrainer:
         # self.train_val_dataset.features = ica.fit_transform(self.train_val_dataset.features)
         # with open(os.path.join(self.config.save_path, 'ica.pkl'), 'wb') as f:
         #     pickle.dump(ica, f)
-        # pca = PCA(n_components=0.95)
-        # self.train_val_dataset.features = pca.fit_transform(self.train_val_dataset.features)
-        # with open(os.path.join(self.config.save_path, 'pca.pkl'), 'wb') as f:
-        #     pickle.dump(pca, f)
+        pca = PCA(n_components=0.95)
+        self.train_val_dataset.features = pca.fit_transform(self.train_val_dataset.features)
+        with open(os.path.join(self.config.save_path, 'pca.pkl'), 'wb') as f:
+            pickle.dump(pca, f)
 
     def load_preprocessing(self):
         for snr, test_dataset in self.test_datasets.items():
@@ -75,9 +75,9 @@ class EEGTrainer:
             # with open(os.path.join(self.config.save_path, 'ica.pkl'), 'rb') as f:
             #     ica = pickle.load(f)
             #     test_dataset.features = ica.transform(test_dataset.features)
-            # with open(os.path.join(self.config.save_path, 'pca.pkl'), 'rb') as f:
-            #     pca = pickle.load(f)
-            #     test_dataset.features = pca.transform(test_dataset.features)
+            with open(os.path.join(self.config.save_path, 'pca.pkl'), 'rb') as f:
+                pca = pickle.load(f)
+                test_dataset.features = pca.transform(test_dataset.features)
 
 
     def split_dataset(self):
@@ -107,7 +107,7 @@ class EEGTrainer:
         for batch_features, batch_labels in self.train_loader:
             batch_features, batch_labels = batch_features.to(self.device), batch_labels.to(self.device)
             self.optimizer.zero_grad()
-            outputs = self.model(batch_features.float())
+            outputs = self.model(batch_features.float()).to(self.device)
             loss = self.criterion(outputs, batch_labels.long())
             loss.backward()
             self.optimizer.step()
@@ -132,7 +132,7 @@ class EEGTrainer:
         with torch.no_grad():
             for val_features, val_labels in self.val_loader:
                 val_features, val_labels = val_features.to(self.device), val_labels.to(self.device)
-                val_outputs = self.model(val_features.float())
+                val_outputs = self.model(val_features.float()).to(self.device)
                 loss = self.criterion(val_outputs, val_labels.long())
                 val_loss += loss.item()
                 all_val_labels.extend(val_labels.cpu().numpy())
@@ -170,7 +170,7 @@ class EEGTrainer:
             with torch.no_grad():
                 for test_features, test_labels in test_loader:
                     test_features, test_labels = test_features.to(self.device), test_labels.to(self.device)
-                    test_outputs = self.model(test_features.float())
+                    test_outputs = self.model(test_features.float()).to(self.device)
                     loss = self.criterion(test_outputs, test_labels.long())
                     test_loss += loss.item()
                     _, test_preds = torch.max(test_outputs, 1)
