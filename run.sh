@@ -1,4 +1,4 @@
-rm -rf output
+#rm -rf output
 rm -rf checkpoints
 rm -rf data/train data/test
-python3 main.py
+python3 main.py --no_plot

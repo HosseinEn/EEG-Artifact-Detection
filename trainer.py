@@ -1,3 +1,5 @@
+import datetime
+
 import termcolor
 from model import ArtifactDetectionNN
 from dataset import EEGDataset
@@ -13,6 +15,8 @@ import pickle
 from sklearn.decomposition import PCA
 from sklearn.decomposition import FastICA
 from sklearn.preprocessing import StandardScaler
+
+run_datetime = datetime.datetime.now()
 
 class EEGTrainer:
     def __init__(self, config):
@@ -64,11 +68,11 @@ class EEGTrainer:
         #     pickle.dump(ica, f)
         # self.val_dataset.features = ica.transform(self.val_dataset.features)
 
-        # pca = PCA(n_components=0.95)
-        # self.train_dataset.features = pca.fit_transform(self.train_dataset.features)
-        # with open(os.path.join(self.config.save_path, 'pca.pkl'), 'wb') as f:
-        #     pickle.dump(pca, f)
-        # self.val_dataset.features = pca.transform(self.val_dataset.features)
+        pca = PCA(n_components=0.95)
+        self.train_dataset.features = pca.fit_transform(self.train_dataset.features)
+        with open(os.path.join(self.config.save_path, 'pca.pkl'), 'wb') as f:
+            pickle.dump(pca, f)
+        self.val_dataset.features = pca.transform(self.val_dataset.features)
 
     def load_preprocessing(self):
         for snr, test_dataset in self.test_datasets.items():
@@ -78,9 +82,9 @@ class EEGTrainer:
             # with open(os.path.join(self.config.save_path, 'ica.pkl'), 'rb') as f:
             #     ica = pickle.load(f)
             #     test_dataset.features = ica.transform(test_dataset.features)
-            # with open(os.path.join(self.config.save_path, 'pca.pkl'), 'rb') as f:
-            #     pca = pickle.load(f)
-            #     test_dataset.features = pca.transform(test_dataset.features)
+            with open(os.path.join(self.config.save_path, 'pca.pkl'), 'rb') as f:
+                pca = pickle.load(f)
+                test_dataset.features = pca.transform(test_dataset.features)
 
 
     def split_dataset(self):
@@ -175,7 +179,7 @@ class EEGTrainer:
                 f"Precision: {test_precision:.4f}, Recall: {test_recall:.4f}"
             logging.info(r)
             print(r)
-            res_path = os.path.join(self.config.outputpath, 'results.csv')
+            res_path = os.path.join(self.config.outputpath, f'results{run_datetime}.csv')
             with open(res_path, 'a') as f:
                 if os.stat(res_path).st_size == 0:
                     f.write('SNR,Accuracy,F1,Precision,Recall\n')
