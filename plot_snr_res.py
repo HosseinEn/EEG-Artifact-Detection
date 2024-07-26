@@ -1,26 +1,33 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+import re
+import os
 
-file_path = './output/results.csv'
-data = pd.read_csv(file_path)
+# Plot the results{datetime}.csv files in output directory
+pattern = re.compile(r'results.*.csv')
 
-# Check the data
-print(data.head())
+def plot_snr_res(outputpath):
+    labels = ['signal', 'signal and PCA', 'signal, PSD and PCA',
+              'var, skewness, kurt, rms, entropy, PSD and PCA',
+              'wavelet approximation', 'whole wavelet', 'signal and ICA',
+              'signal, ICA and PCA', 'signal, PSD, ICA and PCA',
+              'wavelet approximation, ICA and PCA']
+    files = [f for f in os.listdir(outputpath) if pattern.match(f)]
+    files = sorted(files, key=lambda x: x.split('results')[1].split('.csv')[0])
+    files = [(l, f) for l, f in zip(labels, files)]
+    for l, file in files:
+        df = pd.read_csv(os.path.join(outputpath, file))
+        plt.plot(df['SNR'], df['Accuracy'], marker='o', label=l)
+    plt.xlabel('SNR (dB)')
+    plt.xticks(np.arange(-7, 6.5, 0.5))
+    plt.ylabel('Accuracy')
+    plt.yticks(np.arange(0.6, 1.05, 0.05))
+    plt.title('Accuracy vs SNR')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
 
-data.columns = data.columns.str.strip()
 
-data_grouped = data.groupby('SNR').mean(numeric_only=True).reset_index()
-
-plt.figure(figsize=(10, 6))
-
-plt.plot(data_grouped['SNR'], data_grouped['Test Accuracy'], marker='o', color='b')
-
-plt.xlabel('SNR [dB]')
-plt.xticks(data_grouped['SNR'])
-plt.ylabel('Test accuracy')
-plt.yticks(np.arange(0.6, 1.05, 0.05))
-plt.title('Relationship between SNR and classification accuracy')
-
-plt.grid(True)
-plt.show()
+if __name__ == "__main__":
+    plot_snr_res('./output')
