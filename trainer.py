@@ -62,29 +62,33 @@ class EEGTrainer:
             pickle.dump(scaler, f)
         self.val_dataset.features = scaler.transform(self.val_dataset.features)
 
-        # ica = FastICA(n_components=100, random_state=10)
-        # self.train_dataset.features = ica.fit_transform(self.train_dataset.features)
-        # with open(os.path.join(self.config.save_path, 'ica.pkl'), 'wb') as f:
-        #     pickle.dump(ica, f)
-        # self.val_dataset.features = ica.transform(self.val_dataset.features)
+        if self.config.ica:
+            ica = FastICA(n_components=100, random_state=10)
+            self.train_dataset.features = ica.fit_transform(self.train_dataset.features)
+            with open(os.path.join(self.config.save_path, 'ica.pkl'), 'wb') as f:
+                pickle.dump(ica, f)
+            self.val_dataset.features = ica.transform(self.val_dataset.features)
 
-        pca = PCA(n_components=0.95)
-        self.train_dataset.features = pca.fit_transform(self.train_dataset.features)
-        with open(os.path.join(self.config.save_path, 'pca.pkl'), 'wb') as f:
-            pickle.dump(pca, f)
-        self.val_dataset.features = pca.transform(self.val_dataset.features)
+        if self.config.pca:
+            pca = PCA(n_components=0.95)
+            self.train_dataset.features = pca.fit_transform(self.train_dataset.features)
+            with open(os.path.join(self.config.save_path, 'pca.pkl'), 'wb') as f:
+                pickle.dump(pca, f)
+            self.val_dataset.features = pca.transform(self.val_dataset.features)
 
     def load_preprocessing(self):
         for snr, test_dataset in self.test_datasets.items():
             with open(os.path.join(self.config.save_path, 'scaler.pkl'), 'rb') as f:
                 scaler = pickle.load(f)
                 test_dataset.features = scaler.transform(test_dataset.features)
-            # with open(os.path.join(self.config.save_path, 'ica.pkl'), 'rb') as f:
-            #     ica = pickle.load(f)
-            #     test_dataset.features = ica.transform(test_dataset.features)
-            with open(os.path.join(self.config.save_path, 'pca.pkl'), 'rb') as f:
-                pca = pickle.load(f)
-                test_dataset.features = pca.transform(test_dataset.features)
+            if self.config.ica:
+                with open(os.path.join(self.config.save_path, 'ica.pkl'), 'rb') as f:
+                    ica = pickle.load(f)
+                    test_dataset.features = ica.transform(test_dataset.features)
+            if self.config.pca:
+                with open(os.path.join(self.config.save_path, 'pca.pkl'), 'rb') as f:
+                    pca = pickle.load(f)
+                    test_dataset.features = pca.transform(test_dataset.features)
 
 
     def split_dataset(self):

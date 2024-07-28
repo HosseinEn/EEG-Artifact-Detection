@@ -22,6 +22,8 @@ def load_config():
     parser.add_argument('--no_plot', default=True, action='store_false')
     parser.add_argument('--save_path', type=str, default='checkpoints')
     parser.add_argument('--mode', type=str, default='train')
+    parser.add_argument('--pca', default=False, action='store_true')
+    parser.add_argument('--ica', default=False, action='store_true')
     args = parser.parse_args()
     return args
 
