@@ -10,3 +10,4 @@
 ('wavelet approximation, PSD, ICA and PCA', 'results2024-07-26 13:54:56.654094.csv'), 
 ('PSD, ICA and PCA', 'results2024-07-29 12:44:29.526534.csv'),
 ('last level approximation + all details (except the nth level), PSD, ICA and PCA', 'results2024-07-29 14:14:31.364610.csv')
+('last level approximation + all details (except the nth level), PSD and PCA', 'results2024-07-29 19:00:28.426737.csv')
