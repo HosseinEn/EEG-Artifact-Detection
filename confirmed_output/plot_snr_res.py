@@ -15,7 +15,7 @@ def plot_snr_res(outputpath):
               'wavelet approximation', 'whole wavelet', 'signal and ICA',
               'signal, ICA and PCA', 'signal, PSD, ICA and PCA',
               'wavelet approximation, PSD, ICA and PCA', 'PSD, ICA and PCA',
-              'wavelet except the nth level detail, PSD, ICA and PCA']
+              'last level approximation + all details (except the nth level), PSD, ICA and PCA']
     files = [f for f in os.listdir(outputpath) if pattern.match(f)]
     files = sorted(files, key=lambda x: x.split('results')[1].split('.csv')[0])
     files = [(l, f) for l, f in zip(labels, files)]
