@@ -4,8 +4,10 @@ import numpy as np
 import re
 import os
 
-# Plot the results{datetime}.csv files in output directory
 pattern = re.compile(r'results.*.csv')
+
+def filter_files(files, labels):
+    return [f for f in files if f[0] in labels]
 
 def plot_snr_res(outputpath):
     labels = ['signal', 'signal and PCA', 'signal, PSD and PCA',
@@ -16,6 +18,8 @@ def plot_snr_res(outputpath):
     files = [f for f in os.listdir(outputpath) if pattern.match(f)]
     files = sorted(files, key=lambda x: x.split('results')[1].split('.csv')[0])
     files = [(l, f) for l, f in zip(labels, files)]
+    files = filter_files(files, ['signal', 'signal and PCA', 'signal, PSD and PCA',
+                                 'var, skewness, kurt, rms, entropy, PSD and PCA'])
     for l, file in files:
         df = pd.read_csv(os.path.join(outputpath, file))
         plt.plot(df['SNR'], df['Accuracy'], marker='o', label=l)
