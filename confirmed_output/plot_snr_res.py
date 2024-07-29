@@ -14,14 +14,11 @@ def plot_snr_res(outputpath):
               'var, skewness, kurt, rms, entropy, PSD and PCA',
               'wavelet approximation', 'whole wavelet', 'signal and ICA',
               'signal, ICA and PCA', 'signal, PSD, ICA and PCA',
-              'wavelet approximation, PSD, ICA and PCA', 'PSD, ICA and PCA']
+              'wavelet approximation, PSD, ICA and PCA', 'PSD, ICA and PCA',
+              'wavelet except the nth level detail, PSD, ICA and PCA']
     files = [f for f in os.listdir(outputpath) if pattern.match(f)]
     files = sorted(files, key=lambda x: x.split('results')[1].split('.csv')[0])
     files = [(l, f) for l, f in zip(labels, files)]
-    # files = filter_files(files, ['signal', 'signal and PCA', 'signal, PSD and PCA',
-    #                              'wavelet approximation',
-    #                              'signal, ICA and PCA', 'signal, PSD, ICA and PCA',
-    #                              'wavelet approximation, ICA and PCA', 'PSD, ICA and PCA'])
     for l, file in files:
         df = pd.read_csv(os.path.join(outputpath, file))
         plt.plot(df['SNR'], df['Accuracy'], marker='o', label=l)
