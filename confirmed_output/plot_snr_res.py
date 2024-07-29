@@ -19,7 +19,6 @@ def plot_snr_res(outputpath):
               'last level approximation + all details (except the nth level), PSD and PCA']
     files = [f for f in os.listdir(outputpath) if pattern.match(f)]
     files = sorted(files, key=lambda x: x.split('results')[1].split('.csv')[0])
-    breakpoint()
     files = [(l, f) for l, f in zip(labels, files)]
     files = filter_files(files, ['signal',
                                  'signal and PCA',
