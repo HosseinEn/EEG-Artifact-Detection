@@ -63,7 +63,7 @@ class EEGTrainer:
         self.val_dataset.features = scaler.transform(self.val_dataset.features)
 
         if self.config.ica:
-            ica = FastICA(n_components=100, random_state=10)
+            ica = FastICA(n_components=80, random_state=10)
             self.train_dataset.features = ica.fit_transform(self.train_dataset.features)
             with open(os.path.join(self.config.save_path, 'ica.pkl'), 'wb') as f:
                 pickle.dump(ica, f)
