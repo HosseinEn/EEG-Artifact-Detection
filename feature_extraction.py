@@ -6,7 +6,9 @@ import antropy as ant
 
 def wavelet_transform(signal, wavelet='db4', level=4):
     coeffs = pywt.wavedec(signal, wavelet, level=level)
-    return np.concatenate([c.flatten() for c in coeffs]) # coeffs[0] is the approximation and the rest are details
+    approx = coeffs[0]
+    details = coeffs[1:]
+    return np.concatenate([approx.flatten()] + [d.flatten() for d in details[1:]])
 
 def power_spectral_density(signal, fs=512):
     freqs, psd = welch(signal, fs=fs)
