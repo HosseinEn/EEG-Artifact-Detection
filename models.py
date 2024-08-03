@@ -30,13 +30,13 @@ class ExtremeLearningMachine(nn.Module):
         self.output_weights = nn.Parameter(torch.randn(hidden_dim, output_dim))
 
     def forward(self, x):
-        h = F.relu(torch.mm(x, self.input_weights) + self.bias)
+        h = F.sigmoid(torch.mm(x, self.input_weights) + self.bias)
         y = torch.mm(h, self.output_weights)
         return y
 
     def train_elm(self, x_train, y_train):
         y_train = F.one_hot(y_train.long(), num_classes=self.output_dim)
-        H = F.relu(torch.matmul(x_train, self.input_weights) + self.bias)
+        H = F.sigmoid(torch.matmul(x_train, self.input_weights) + self.bias)
         H_pinv = torch.pinverse(H)
         output_weights_new = torch.matmul(H_pinv, y_train.float())
         with torch.no_grad():
