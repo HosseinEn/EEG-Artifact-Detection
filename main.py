@@ -1,5 +1,5 @@
 import argparse
-from trainer import EEGTrainer
+from MLPTrainer import MLPTrainer
 import warnings
 from ELMTrainer import ELMTrainer
 warnings.filterwarnings("ignore")
@@ -33,7 +33,7 @@ if __name__ == "__main__":
     config = load_config()
     trainer = None
     if config.model == 'ANN':
-        trainer = EEGTrainer(config)
+        trainer = MLPTrainer(config)
     elif config.model == 'ELM':
         trainer = ELMTrainer(config)
     trainer.run()

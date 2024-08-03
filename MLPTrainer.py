@@ -21,7 +21,7 @@ import numpy as np
 run_datetime = datetime.datetime.now()
 
 
-class EEGTrainer:
+class MLPTrainer:
     def __init__(self, config):
         self.config = config
         self.device = self._setup_device()
