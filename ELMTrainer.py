@@ -1,7 +1,7 @@
 import datetime
 
 import termcolor
-from model import ExtremeLearningMachine
+from models import ExtremeLearningMachine
 from dataset import EEGDataset
 from datanoise_combiner import DataNoiseCombiner
 from tqdm import tqdm

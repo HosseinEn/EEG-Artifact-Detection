@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from sklearn.decomposition import PCA, FastICA
 from sklearn.preprocessing import StandardScaler
-from model import ArtifactDetectionNN
+from models import ArtifactDetectionNN
 from dataset import EEGDataset
 from datanoise_combiner import DataNoiseCombiner
 from utils import calculate_metrics, setup_logging, EarlyStopping
