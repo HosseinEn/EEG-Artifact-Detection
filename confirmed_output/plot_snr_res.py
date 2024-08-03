@@ -10,24 +10,12 @@ def filter_files(files, labels):
     return [f for f in files if f[0] in labels]
 
 def plot_snr_res(outputpath):
-    labels = ['signal', 'signal and PCA', 'signal, PSD and PCA',
-              'var, skewness, kurt, rms, entropy, PSD and PCA',
-              'wavelet approximation', 'whole wavelet', 'signal and ICA',
-              'signal, ICA and PCA', 'signal, PSD, ICA and PCA',
-              'wavelet approximation, PSD, ICA and PCA', 'PSD, ICA and PCA',
-              'last level approximation + all details (except the nth level), PSD, ICA and PCA',
-              'last level approximation + all details (except the nth level), PSD and PCA']
-    files = [f for f in os.listdir(outputpath) if pattern.match(f)]
-    files = sorted(files, key=lambda x: x.split('results')[1].split('.csv')[0])
+    guide_df = pd.read_csv('./guide.csv')
+    labels = guide_df['Description'].tolist()
+    files = guide_df['Filename'].tolist()
     files = [(l, f) for l, f in zip(labels, files)]
-    files = filter_files(files, ['signal',
-                                 'signal and PCA',
-                                 'signal, PSD and PCA',
-                                 'signal, PSD, ICA and PCA',
-                                 'wavelet approximation, PSD, ICA and PCA',
-                                 'PSD, ICA and PCA',
-                                 'last level approximation + all details (except the nth level), PSD, ICA and PCA',
-                                 'last level approximation + all details (except the nth level), PSD and PCA'])
+    # breakpoint()
+    files = filter_files(files, ['MLP Network', 'ELM Network'])
     for l, file in files:
         df = pd.read_csv(os.path.join(outputpath, file))
         plt.plot(df['SNR'], df['Accuracy'], marker='o', label=l)
