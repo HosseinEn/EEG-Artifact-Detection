@@ -14,8 +14,6 @@ def plot_snr_res(outputpath):
     labels = guide_df['Description'].tolist()
     files = guide_df['Filename'].tolist()
     files = [(l, f) for l, f in zip(labels, files)]
-    # breakpoint()
-    files = filter_files(files, ['MLP Network', 'ELM Network'])
     for l, file in files:
         df = pd.read_csv(os.path.join(outputpath, file))
         plt.plot(df['SNR'], df['Accuracy'], marker='o', label=l)
