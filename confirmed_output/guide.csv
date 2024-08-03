@@ -9,7 +9,13 @@ Description,Filename
 "signal, ICA and PCA",results2024-07-26 13:48:12.253091.csv
 "signal, PSD, ICA and PCA",results2024-07-26 13:50:32.124638.csv
 "wavelet approximation, PSD, ICA and PCA",results2024-07-26 13:54:56.654094.csv
-"PSD, ICA and PCA",results2024-07-29 12:44:29.526534.csv
 "last level approximation + all details (except the nth level), PSD, ICA and PCA",results2024-07-29 14:14:31.364610.csv
 "last level approximation + all details (except the nth level), PSD and PCA",results2024-07-29 19:00:28.426737.csv
 "ELM Network",results2024-08-02 18:33:47.296095.csv
+"Hidden Layer Perceptron 64",results2024-08-03 19:11:25.891215.csv
+"Hidden Layer Perceptron 128",results2024-08-02 18:33:47.296095.csv
+"Hidden Layer Perceptron 256",results2024-08-03 19:14:20.072913.csv
+"HLP: 512, AF: relu",results2024-08-03 19:17:45.184594.csv
+"HLP: 512, AF: tanh",results2024-08-03 19:33:45.976827.csv
+"HLP: 512, AF: sigmoid",results2024-08-03 19:48:05.646084.csv
+"HLP: 512, AF: leaky relu",results2024-08-03 19:59:30.818627.csv
