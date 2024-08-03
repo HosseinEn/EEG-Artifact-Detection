@@ -23,7 +23,7 @@ def load_config():
     parser.add_argument('--no_plot', default=True, action='store_false')
     parser.add_argument('--save_path', type=str, default='checkpoints')
     parser.add_argument('--mode', type=str, default='train')
-    parser.add_argument('--model', type=str, default='ANN')
+    parser.add_argument('--model', type=str, default='MLP')
     parser.add_argument('--pca', default=False, action='store_true')
     parser.add_argument('--ica', default=False, action='store_true')
     args = parser.parse_args()
@@ -32,7 +32,7 @@ def load_config():
 if __name__ == "__main__":
     config = load_config()
     trainer = None
-    if config.model == 'ANN':
+    if config.model == 'MLP':
         trainer = MLPTrainer(config)
     elif config.model == 'ELM':
         trainer = ELMTrainer(config)

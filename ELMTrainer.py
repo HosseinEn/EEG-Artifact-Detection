@@ -45,7 +45,7 @@ class ELMTrainer:
         feature_size = next(iter(self.test_datasets.values())).features.shape[1]
         print(f'Feature shape: {feature_size}')
         self.train_loader, self.val_loader = self.split_dataset()
-        self.model = ExtremeLearningMachine(feature_size, 128, 3).to(self.device)
+        self.model = ExtremeLearningMachine(feature_size, 512, 3).to(self.device)
         self.train_accuracies = []
         self.val_accuracies = []
         self.criterion = CrossEntropyLoss()
