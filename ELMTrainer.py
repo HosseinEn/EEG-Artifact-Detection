@@ -1,167 +1,204 @@
+import os
 import datetime
-
+import logging
+import pickle
+from pathlib import Path
 import termcolor
-from models import ExtremeLearningMachine
-from dataset import EEGDataset
-from datanoise_combiner import DataNoiseCombiner
-from tqdm import tqdm
 import torch
 import torch.optim as optim
 import matplotlib.pyplot as plt
 from torch.nn import CrossEntropyLoss
-from torch.utils.data import DataLoader, random_split
-from utils import *
-import pickle
-from sklearn.decomposition import PCA
-from sklearn.decomposition import FastICA
+from torch.utils.data import DataLoader
+from tqdm import tqdm
+from sklearn.decomposition import PCA, FastICA
 from sklearn.preprocessing import StandardScaler
+from models import ExtremeLearningMachine
+from dataset import EEGDataset
+from datanoise_combiner import DataNoiseCombiner
+from utils import calculate_metrics, setup_logging, EarlyStopping
+import numpy as np
 
 run_datetime = datetime.datetime.now()
-
-
-
 
 class ELMTrainer:
     def __init__(self, config):
         self.config = config
-        os.makedirs(config.save_path, exist_ok=True)
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        print(f'Using device: {self.device}')
-        setup_logging(config.log_file, config.log_level)
-        DataNoiseCombiner(config)
+        self.device = self._setup_device()
+        self._setup_directories()
+        self._setup_logging()
+        self._init_data_combiner()
+        self._load_datasets()
+        self._setup_preprocessing()
+        self._init_model()
+        self._init_training_components()
+        self._init_metrics()
+
+    def _setup_device(self):
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        print(f'Using device: {device}')
+        return device
+
+    def _setup_directories(self):
+        os.makedirs(self.config.save_path, exist_ok=True)
+        os.makedirs(self.config.outputpath, exist_ok=True)
+
+    def _setup_logging(self):
+        setup_logging(self.config.log_file, self.config.log_level)
+
+    def _init_data_combiner(self):
+        DataNoiseCombiner(self.config)
+
+    def _load_datasets(self):
         self.train_dataset = EEGDataset(Path(self.config.datapath) / "train")
         self.val_dataset = EEGDataset(Path(self.config.datapath) / "val")
-        self.test_datasets = {}
-        test_dir = Path(self.config.datapath) / "test"
+        self.test_datasets = self._load_test_datasets(Path(self.config.datapath) / "test")
+
+    def _load_test_datasets(self, test_dir):
+        test_datasets = {}
         for snr_dir in test_dir.iterdir():
             if snr_dir.is_dir():
                 snr_value = snr_dir.name.split(' ')[-1]
-                self.test_datasets[snr_value] = EEGDataset(snr_dir)
+                test_datasets[snr_value] = EEGDataset(snr_dir)
+        return test_datasets
+
+    def _setup_preprocessing(self):
         if self.config.mode == 'train':
-            self.preprocess_data()
-            self.load_preprocessing()
-        else:
-            self.load_preprocessing()
+            self._preprocess_data()
+        self._load_preprocessing()
+
+    def _init_model(self):
         feature_size = next(iter(self.test_datasets.values())).features.shape[1]
         print(f'Feature shape: {feature_size}')
-        self.train_loader, self.val_loader = self.split_dataset()
         self.model = ExtremeLearningMachine(feature_size, 512, 3).to(self.device)
+
+    def _init_training_components(self):
+        self.criterion = CrossEntropyLoss()
+        self.train_loader, self.val_loader = self._split_dataset()
+
+    def _init_metrics(self):
         self.train_accuracies = []
         self.val_accuracies = []
-        self.criterion = CrossEntropyLoss()
-        self.snr_value = self.config.snr_db
-        self.mode = config.mode
-        os.makedirs(config.outputpath, exist_ok=True)
 
-    def preprocess_data(self):
-        scaler = StandardScaler()
-        self.train_dataset.features = scaler.fit_transform(self.train_dataset.features)
-        with open(os.path.join(self.config.save_path, 'scaler.pkl'), 'wb') as f:
-            pickle.dump(scaler, f)
+    def _preprocess_data(self):
+        self.train_dataset.features, scaler = self._scale_data(self.train_dataset.features)
+        self._save_preprocessor(scaler, 'scaler.pkl')
         self.val_dataset.features = scaler.transform(self.val_dataset.features)
 
         if self.config.ica:
-            ica = FastICA(n_components=80, random_state=10)
-            self.train_dataset.features = ica.fit_transform(self.train_dataset.features)
-            with open(os.path.join(self.config.save_path, 'ica.pkl'), 'wb') as f:
-                pickle.dump(ica, f)
+            self.train_dataset.features, ica = self._apply_ica(self.train_dataset.features)
+            self._save_preprocessor(ica, 'ica.pkl')
             self.val_dataset.features = ica.transform(self.val_dataset.features)
 
         if self.config.pca:
-            pca = PCA(n_components=0.95)
-            self.train_dataset.features = pca.fit_transform(self.train_dataset.features)
-            with open(os.path.join(self.config.save_path, 'pca.pkl'), 'wb') as f:
-                pickle.dump(pca, f)
+            self.train_dataset.features, pca = self._apply_pca(self.train_dataset.features)
+            self._save_preprocessor(pca, 'pca.pkl')
             self.val_dataset.features = pca.transform(self.val_dataset.features)
 
-    def load_preprocessing(self):
-        for snr, test_dataset in self.test_datasets.items():
-            with open(os.path.join(self.config.save_path, 'scaler.pkl'), 'rb') as f:
-                scaler = pickle.load(f)
-                test_dataset.features = scaler.transform(test_dataset.features)
-            if self.config.ica:
-                with open(os.path.join(self.config.save_path, 'ica.pkl'), 'rb') as f:
-                    ica = pickle.load(f)
-                    test_dataset.features = ica.transform(test_dataset.features)
-            if self.config.pca:
-                with open(os.path.join(self.config.save_path, 'pca.pkl'), 'rb') as f:
-                    pca = pickle.load(f)
-                    test_dataset.features = pca.transform(test_dataset.features)
+    def _scale_data(self, features):
+        scaler = StandardScaler()
+        scaled_features = scaler.fit_transform(features)
+        return scaled_features, scaler
 
-    def split_dataset(self):
+    def _apply_ica(self, features):
+        ica = FastICA(n_components=80, random_state=10)
+        ica_features = ica.fit_transform(features)
+        return ica_features, ica
+
+    def _apply_pca(self, features):
+        pca = PCA(n_components=0.95)
+        pca_features = pca.fit_transform(features)
+        return pca_features, pca
+
+    def _save_preprocessor(self, preprocessor, filename):
+        with open(os.path.join(self.config.save_path, filename), 'wb') as f:
+            pickle.dump(preprocessor, f)
+
+    def _load_preprocessing(self):
+        for snr, test_dataset in self.test_datasets.items():
+            scaler = self._load_preprocessor('scaler.pkl')
+            test_dataset.features = scaler.transform(test_dataset.features)
+            if self.config.ica:
+                ica = self._load_preprocessor('ica.pkl')
+                test_dataset.features = ica.transform(test_dataset.features)
+            if self.config.pca:
+                pca = self._load_preprocessor('pca.pkl')
+                test_dataset.features = pca.transform(test_dataset.features)
+
+    def _load_preprocessor(self, filename):
+        with open(os.path.join(self.config.save_path, filename), 'rb') as f:
+            return pickle.load(f)
+
+    def _split_dataset(self):
         train_loader = DataLoader(self.train_dataset, batch_size=self.config.batch_size, shuffle=True)
         val_loader = DataLoader(self.val_dataset, batch_size=self.config.batch_size, shuffle=False)
         return train_loader, val_loader
 
-    def train(self):
+    def train_one_epoch(self):
         X_train = torch.tensor(self.train_dataset.features, dtype=torch.float32).to(self.device)
         y_train = torch.tensor(self.train_dataset.labels, dtype=torch.float32).to(self.device)
-
         self.model.train_elm(X_train, y_train)
         model_path = os.path.join(self.config.save_path, 'best_model.pth')
         torch.save(self.model.state_dict(), model_path)
 
-    def validate(self):
+    def validate_one_epoch(self):
         X_val = torch.tensor(self.val_dataset.features, dtype=torch.float32).to(self.device)
         y_val = torch.tensor(self.val_dataset.labels, dtype=torch.float32).to(self.device)
-
         y_pred = self.model.predict(X_val)
-
-        val_acc = accuracy_score(y_val.cpu().numpy(), y_pred.cpu().numpy())
-        val_f1 = f1_score(y_val.cpu().numpy(), y_pred.cpu().numpy(), average='weighted')
-        val_precision = precision_score(y_val.cpu().numpy(), y_pred.cpu().numpy(), average='weighted')
-        val_recall = recall_score(y_val.cpu().numpy(), y_pred.cpu().numpy(), average='weighted')
-
-        r = f"[Validation] Accuracy: {val_acc:.4f}, F1: {val_f1:.4f}, Precision: {val_precision:.4f}, Recall: {val_recall:.4f}"
-        logging.info(r)
-        print(r)
+        val_acc, val_f1, val_precision, val_recall = calculate_metrics(y_val.cpu().numpy(), y_pred.cpu().numpy())
+        self._log_epoch_metrics(val_acc, val_f1, val_precision, val_recall, 'Validation')
         return val_acc, val_f1, val_precision, val_recall
 
+    def _log_epoch_metrics(self, acc, f1, precision, recall, phase):
+        metrics_log = (f"[{phase}] Accuracy: {acc:.4f}, F1: {f1:.4f}, Precision: {precision:.4f}, Recall: {recall:.4f}")
+        logging.info(metrics_log)
+        print(termcolor.colored(metrics_log, 'blue' if phase == 'Validation' else 'green'))
+
     def test(self):
-        test_accuracies = []
-        snr_values = []
-        model_path = os.path.join(self.config.save_path, 'best_model.pth')
-
-        if not os.path.exists(model_path):
-            raise FileNotFoundError(f"No trained model found at {model_path}. Please train the model first.")
-
-        # sort test_datasets by its string snr values as key
+        test_accuracies, snr_values = [], []
         self.test_datasets = dict(sorted(self.test_datasets.items(), key=lambda x: float(x[0])))
         for snr_value, test_dataset in self.test_datasets.items():
             test_loader = DataLoader(test_dataset, batch_size=self.config.batch_size, shuffle=False)
-            self.model.load_state_dict(torch.load(model_path))
-            self.model.to(self.device)
-            self.model.eval()
-            test_loss = 0.0
-            all_test_labels = []
-            all_test_preds = []
-            with torch.no_grad():
-                for test_features, test_labels in test_loader:
-                    test_features, test_labels = test_features.to(self.device), test_labels.to(self.device)
-                    test_outputs = self.model(test_features.float()).to(self.device)
-                    loss = self.criterion(test_outputs, test_labels)
-                    test_loss += loss.item()
-                    _, test_preds = torch.max(test_outputs, 1)
-                    all_test_labels.extend(test_labels.cpu().numpy())
-                    all_test_preds.extend(test_preds.cpu().numpy())
-            test_acc = accuracy_score(all_test_labels, all_test_preds)
-            test_f1 = f1_score(all_test_labels, all_test_preds, average='weighted')
-            test_precision = precision_score(all_test_labels, all_test_preds, average='weighted')
-            test_recall = recall_score(all_test_labels, all_test_preds, average='weighted')
-            test_accuracies.append(test_acc)
-            snr_values.append(snr_value)
-            avg_test_loss = test_loss / len(test_loader)
-            r = f"[Test] SNR: {snr_value}, Loss: {avg_test_loss:.4f}, Accuracy: {test_acc:.4f}, F1: {test_f1:.4f}, " \
-                f"Precision: {test_precision:.4f}, Recall: {test_recall:.4f}"
-            logging.info(r)
-            print(r)
-            res_path = os.path.join(self.config.outputpath, f'results{run_datetime}.csv')
-            with open(res_path, 'a') as f:
-                if os.stat(res_path).st_size == 0:
-                    f.write('SNR,Accuracy,F1,Precision,Recall\n')
-                f.write(f'{snr_value},{test_acc},{test_f1},{test_precision},{test_recall}\n')
+            self._load_best_model()
+            self._evaluate_test_set(test_loader, snr_value, test_accuracies, snr_values)
+        self._plot_test_results(snr_values, test_accuracies)
 
-        # plot the accuracy based on SNR values
+    def _load_best_model(self):
+        self.model.load_state_dict(torch.load(os.path.join(self.config.save_path, 'best_model.pth')))
+        self.model.to(self.device)
+
+    def _evaluate_test_set(self, test_loader, snr_value, test_accuracies, snr_values):
+        self.model.eval()
+        test_loss, all_test_labels, all_test_preds = 0.0, [], []
+        with torch.no_grad():
+            for test_features, test_labels in test_loader:
+                test_features, test_labels = test_features.to(self.device), test_labels.to(self.device)
+                test_outputs = self.model(test_features.float())
+                loss = self.criterion(test_outputs, test_labels)
+                test_loss += loss.item()
+                _, test_preds = torch.max(test_outputs, 1)
+                all_test_labels.extend(test_labels.cpu().numpy())
+                all_test_preds.extend(test_preds.cpu().numpy())
+        self._log_test_metrics(test_loader, test_loss, snr_value, all_test_labels, all_test_preds, test_accuracies, snr_values)
+
+    def _log_test_metrics(self, test_loader, test_loss, snr_value, all_test_labels, all_test_preds, test_accuracies, snr_values):
+        test_acc, test_f1, test_precision, test_recall = calculate_metrics(all_test_labels, all_test_preds)
+        test_accuracies.append(test_acc)
+        snr_values.append(snr_value)
+        avg_test_loss = test_loss / len(test_loader)
+        metrics_log = (f"[Test] SNR: {snr_value}, Loss: {avg_test_loss:.4f}, Accuracy: {test_acc:.4f}, "
+                       f"F1: {test_f1:.4f}, Precision: {test_precision:.4f}, Recall: {test_recall:.4f}")
+        logging.info(metrics_log)
+        print(metrics_log)
+        self._save_test_results(snr_value, test_acc, test_f1, test_precision, test_recall)
+
+    def _save_test_results(self, snr_value, test_acc, test_f1, test_precision, test_recall):
+        res_path = os.path.join(self.config.outputpath, f'results{run_datetime}.csv')
+        with open(res_path, 'a') as f:
+            if os.stat(res_path).st_size == 0:
+                f.write('SNR,Accuracy,F1,Precision,Recall\n')
+            f.write(f'{snr_value},{test_acc},{test_f1},{test_precision},{test_recall}\n')
+
+    def _plot_test_results(self, snr_values, test_accuracies):
         plt.figure(figsize=(10, 5))
         plt.plot(snr_values, test_accuracies, marker='o', color='b')
         plt.xlabel('SNR [dB]')
@@ -171,7 +208,7 @@ class ELMTrainer:
         plt.title('Relationship between SNR and classification accuracy')
         plt.grid(True)
         plt.savefig(os.path.join(self.config.outputpath, 'snr_accuracy.png'))
-        if self.config.no_plot:
+        if not self.config.no_plot:
             plt.show()
 
     def plot_metrics(self):
@@ -180,15 +217,13 @@ class ELMTrainer:
         plt.plot(self.val_accuracies, label='Validation Accuracy')
         plt.xlabel('Epoch')
         plt.ylabel('Accuracy')
-        plt.title(f'Accuracy Curves - SNR: {self.snr_value}')
         plt.legend()
-        plt.savefig(os.path.join(self.config.outputpath, f'combined_curves-snr{self.snr_value}.png'))
-        if self.config.no_plot:
+        if not self.config.no_plot:
             plt.show()
 
     def run(self):
         if self.config.mode == 'train':
-            self.train()
+            self.train_one_epoch()
             self.plot_metrics()
             self.test()
         elif self.config.mode == 'test':
