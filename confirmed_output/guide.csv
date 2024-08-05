@@ -19,3 +19,4 @@ Description,Filename
 "HLP: 512, AF: tanh",results2024-08-03 19:33:45.976827.csv
 "HLP: 512, AF: sigmoid",results2024-08-03 19:48:05.646084.csv
 "HLP: 512, AF: leaky relu",results2024-08-03 19:59:30.818627.csv
+"PSD, ICA and PCA",results2024-08-05 10:55:45.857947.csv
