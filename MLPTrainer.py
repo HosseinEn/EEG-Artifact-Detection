@@ -17,6 +17,8 @@ from dataset import EEGDataset
 from datanoise_combiner import DataNoiseCombiner
 from utils import calculate_metrics, setup_logging, EarlyStopping
 import numpy as np
+import seaborn as sns
+from sklearn.metrics import confusion_matrix
 
 run_datetime = datetime.datetime.now()
 
@@ -230,6 +232,8 @@ class MLPTrainer:
                 correct += (test_preds == test_labels).sum().item()
 
         self._log_test_metrics(test_loader, test_loss, snr_value, all_test_labels, all_test_preds, test_accuracies, snr_values)
+        self._plot_confusion_matrix(all_test_labels, all_test_preds, snr_value)
+
 
     def _log_test_metrics(self, test_loader, test_loss, snr_value, all_test_labels, all_test_preds, test_accuracies, snr_values):
         test_acc, test_f1, test_precision, test_recall = calculate_metrics(all_test_labels, all_test_preds)
@@ -241,6 +245,17 @@ class MLPTrainer:
         logging.info(metrics_log)
         print(metrics_log)
         self._save_test_results(snr_value, test_acc, test_f1, test_precision, test_recall)
+
+    def _plot_confusion_matrix(self, test_labels, test_preds, snr):
+        cm = confusion_matrix(test_labels, test_preds)
+        plt.figure(figsize=(10, 7))
+        sns.heatmap(cm, annot=True, fmt='g')
+        plt.xlabel('Predicted')
+        plt.ylabel('Actual')
+        plt.title('Confusion Matrix')
+        plt.savefig(os.path.join(self.config.outputpath, f'confusion_matrix_{snr}.png'))
+        if not self.config.no_plot:
+            plt.show()
 
     def _save_test_results(self, snr_value, test_acc, test_f1, test_precision, test_recall):
         res_path = os.path.join(self.config.outputpath, f'results{run_datetime}.csv')
