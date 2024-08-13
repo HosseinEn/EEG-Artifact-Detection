@@ -1,7 +1,6 @@
 import argparse
 from MLPTrainer import MLPTrainer
 import warnings
-from ELMTrainer import ELMTrainer
 warnings.filterwarnings("ignore")
 
 
@@ -34,6 +33,6 @@ if __name__ == "__main__":
     trainer = None
     if config.model == 'MLP':
         trainer = MLPTrainer(config)
-    elif config.model == 'ELM':
-        trainer = ELMTrainer(config)
+    elif config.model == '...':
+        pass
     trainer.run()
