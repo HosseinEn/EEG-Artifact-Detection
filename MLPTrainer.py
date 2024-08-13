@@ -44,6 +44,7 @@ class MLPTrainer:
     def _setup_directories(self):
         os.makedirs(self.config.save_path, exist_ok=True)
         os.makedirs(self.config.outputpath, exist_ok=True)
+        os.makedirs(Path(self.config.outputpath) / Path('cnf_matrices'), exist_ok=True)
 
     def _setup_logging(self):
         setup_logging(self.config.log_file, self.config.log_level)
@@ -253,7 +254,7 @@ class MLPTrainer:
         plt.xlabel('Predicted')
         plt.ylabel('Actual')
         plt.title('Confusion Matrix')
-        plt.savefig(os.path.join(self.config.outputpath, f'confusion_matrix_{snr}.png'))
+        plt.savefig(os.path.join(Path(self.config.outputpath) / Path('cnf_matrices'), f'confusion_matrix_{snr}.png'))
         if not self.config.no_plot:
             plt.show()
 
