@@ -91,16 +91,15 @@ class MLPTrainer:
         self.train_dataset.features, scaler = self._scale_data(self.train_dataset.features)
         self._save_preprocessor(scaler, 'scaler.pkl')
         self.val_dataset.features = scaler.transform(self.val_dataset.features)
-
+        if self.config.pca:
+            self.train_dataset.features, pca = self._apply_pca(self.train_dataset.features)
+            self._save_preprocessor(pca, 'pca.pkl')
+            self.val_dataset.features = pca.transform(self.val_dataset.features)
         if self.config.ica:
             self.train_dataset.features, ica = self._apply_ica(self.train_dataset.features)
             self._save_preprocessor(ica, 'ica.pkl')
             self.val_dataset.features = ica.transform(self.val_dataset.features)
 
-        if self.config.pca:
-            self.train_dataset.features, pca = self._apply_pca(self.train_dataset.features)
-            self._save_preprocessor(pca, 'pca.pkl')
-            self.val_dataset.features = pca.transform(self.val_dataset.features)
 
     def _scale_data(self, features):
         scaler = StandardScaler()
@@ -125,12 +124,13 @@ class MLPTrainer:
         for snr, test_dataset in self.test_datasets.items():
             scaler = self._load_preprocessor('scaler.pkl')
             test_dataset.features = scaler.transform(test_dataset.features)
-            if self.config.ica:
-                ica = self._load_preprocessor('ica.pkl')
-                test_dataset.features = ica.transform(test_dataset.features)
             if self.config.pca:
                 pca = self._load_preprocessor('pca.pkl')
                 test_dataset.features = pca.transform(test_dataset.features)
+            if self.config.ica:
+                ica = self._load_preprocessor('ica.pkl')
+                test_dataset.features = ica.transform(test_dataset.features)
+
 
     def _load_preprocessor(self, filename):
         with open(os.path.join(self.config.save_path, filename), 'rb') as f:
