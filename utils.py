@@ -45,10 +45,6 @@ def combine_waveforms(clean, noise, snr_db):
         clean_EEG = clean[0]
         noise_EEG = noise[0]
 
-
-        rep = np.ceil(len(clean_EEG) / len(noise_EEG))
-        noise_EEG = np.repeat(noise_EEG, rep, axis=0)[: len(clean_EEG), :]
-
         if snr_db is None:
             snr_db = np.random.choice(np.arange(-7, 4.5, 0.5), (noise_EEG.shape[0],))
 

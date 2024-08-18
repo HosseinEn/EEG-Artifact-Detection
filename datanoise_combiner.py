@@ -38,13 +38,18 @@ class DataNoiseCombiner:
         else:
             raise ValueError(f"Unsupported file type: {path.suffix}")
 
+        # resize eog and emg to match the size of the clean data
+        if label == 1 or label == 2:
+            rep = np.ceil(len(self.data_clean[0]) / len(X))
+            X = np.repeat(X, rep, axis=0)[: len(self.data_clean[0]), :]
+
         y = array([label] * len(X)) if label is not None else None
         return X, y
 
     @staticmethod
     def shuffle_indices(length):
         indices = np.arange(length)
-        np.random.shuffle(indices)
+        # np.random.shuffle(indices)
         return indices
 
     def split_indices(self, indices, test_size, val_size):
