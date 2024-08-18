@@ -49,7 +49,7 @@ class DataNoiseCombiner:
     @staticmethod
     def shuffle_indices(length):
         indices = np.arange(length)
-        # np.random.shuffle(indices)
+        np.random.shuffle(indices)
         return indices
 
     def split_indices(self, indices, test_size, val_size):
