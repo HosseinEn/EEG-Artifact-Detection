@@ -41,17 +41,17 @@ def calculate_metrics(y_true, y_pred):
     return acc, f1, precision, recall
 
 def combine_waveforms(clean, noise, snr_db):
-        rms = lambda x: np.sqrt(np.mean(x ** 2, axis=1))
-        clean_EEG = clean[0]
-        noise_EEG = noise[0]
+    rms = lambda x: np.sqrt(np.mean(x ** 2, axis=1))
+    clean_EEG = clean[0]
+    noise_EEG = noise[0]
 
-        if snr_db is None:
-            snr_db = np.random.choice(np.arange(-7, 4.5, 0.5), (noise_EEG.shape[0],))
+    if snr_db is None:
+        snr_db = np.random.choice(np.arange(-7, 4.5, 0.5), (noise_EEG.shape[0],))
 
-        lambda_snr = rms(clean_EEG) / rms(noise_EEG) / 10 ** (snr_db / 20)
-        lambda_snr = np.expand_dims(lambda_snr, 1)
+    lambda_snr = rms(clean_EEG) / rms(noise_EEG) / 10 ** (snr_db / 20)
+    lambda_snr = np.expand_dims(lambda_snr, 1)
 
-        combined_data = clean_EEG + lambda_snr * noise_EEG
-        labels = array([noise[1][0]] * len(noise_EEG))
+    combined_data = clean_EEG + lambda_snr * noise_EEG
+    labels = array([noise[1][0]] * len(noise_EEG))
 
-        return (combined_data, labels)
+    return (combined_data, labels)
