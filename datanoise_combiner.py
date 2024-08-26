@@ -66,6 +66,7 @@ class DataNoiseCombiner:
         else:
             directory = Path(self.config.datapath) / data_type
         directory.mkdir(parents=True, exist_ok=True)
+        X = zscore(X, axis=1)
         np.save(directory / "X.npy", X)
         np.save(directory / "Y.npy", y)
 
