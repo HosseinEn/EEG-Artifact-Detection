@@ -25,26 +25,19 @@ def power_spectral_density(signal, fs=256):
 
 
 if __name__ == '__main__':
-    # Assuming you're loading from a .mat file, replace with actual path to your data
     emg_signals = sio.loadmat('data/EMG_all_epochs.mat')['EMG_all_epochs']
-
-    # Filter parameters
     cutoff_frequency = 80  # Hz
     sampling_frequency = 256  # Hz
     filtered_emg_signals = np.zeros_like(emg_signals)
 
-    # Apply the Butterworth filter to each epoch
     for i in range(emg_signals.shape[0]):
         filtered_emg_signals[i, :] = fir_filter(emg_signals[i, :], cutoff_frequency, sampling_frequency)
 
-    # Select a random epoch to visualize
     idx = 10
 
-    # Calculate the PSD before and after filtering
     freqs, psd_before = power_spectral_density(emg_signals[idx, :], fs=sampling_frequency)
     freqs, psd_after = power_spectral_density(filtered_emg_signals[idx, :], fs=sampling_frequency)
 
-    # Plot the PSD
     # plt.figure(figsize=(10, 6))
     # plt.semilogy(freqs, psd_before, label='Before Filtering')
     # plt.semilogy(freqs, psd_after, label='After Filtering')
@@ -54,7 +47,6 @@ if __name__ == '__main__':
     # plt.legend()
     # plt.show()
 
-    # np.save('data/filtered_EMG_all_epochs.npy', filtered_emg_signals)
     savemat('data/filtered80Hz_EMG_all_epochs.mat', {'EMG_all_epochs': filtered_emg_signals})
 
 
