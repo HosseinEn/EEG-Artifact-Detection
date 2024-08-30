@@ -29,6 +29,8 @@ class EarlyStopping:
             if self.counter >= self.patience:
                 self.early_stop = True
 
+        return self.early_stop
+
 def setup_logging(log_file, log_level):
     logging.basicConfig(filename=log_file, level=log_level, 
                         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
