@@ -38,15 +38,6 @@ if __name__ == '__main__':
     freqs, psd_before = power_spectral_density(emg_signals[idx, :], fs=sampling_frequency)
     freqs, psd_after = power_spectral_density(filtered_emg_signals[idx, :], fs=sampling_frequency)
 
-    # plt.figure(figsize=(10, 6))
-    # plt.semilogy(freqs, psd_before, label='Before Filtering')
-    # plt.semilogy(freqs, psd_after, label='After Filtering')
-    # plt.xlabel('Frequency (Hz)')
-    # plt.ylabel('Power Spectral Density (V^2/Hz)')
-    # plt.title('Power Spectral Density of EMG Signal')
-    # plt.legend()
-    # plt.show()
-
     savemat('data/filtered80Hz_EMG_all_epochs.mat', {'EMG_all_epochs': filtered_emg_signals})
 
 
