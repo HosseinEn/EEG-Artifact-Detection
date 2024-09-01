@@ -26,7 +26,7 @@ raw.resample(256)
 raw.filter(1, 120, fir_design='firwin')
 raw.notch_filter(np.arange(50, 60, 50), picks='all')
 
-ica = ICA(n_components=20, random_state=97, max_iter=800)
+ica = ICA(n_components=20, random_state=97, max_iter=800, method='infomax', fit_params=dict(extended=True))
 ica.fit(raw)
 labels = label_components(raw, ica, method='iclabel')
 artifact_indices = [i for i, label in enumerate(labels['labels']) if label in ['eye', 'muscle', 'heart', 'line_noise', 'channel_noise', 'other']]
@@ -40,4 +40,4 @@ data = data.reshape(-1, data.shape[2])
 
 data = data[np.random.choice(data.shape[0], 4514, replace=False)]
 
-sio.savemat('/data/filtered120Hz_EEG_all_epochs.mat', {'EEG_all_epochs': data})
+sio.savemat('data/filtered120Hz_EEG_all_epochs.mat', {'EEG_all_epochs': data})
