@@ -233,7 +233,7 @@ class MLPTrainer:
                 correct += (test_preds == test_labels).sum().item()
 
         self._log_test_metrics(test_loader, test_loss, snr_value, all_test_labels, all_test_preds, test_accuracies, snr_values)
-        self._plot_confusion_matrix(all_test_labels, all_test_preds, snr_value)
+        # self._plot_confusion_matrix(all_test_labels, all_test_preds, snr_value)
 
 
     def _log_test_metrics(self, test_loader, test_loss, snr_value, all_test_labels, all_test_preds, test_accuracies, snr_values):
@@ -255,8 +255,6 @@ class MLPTrainer:
         plt.ylabel('Actual')
         plt.title('Confusion Matrix')
         plt.savefig(os.path.join(Path(self.config.outputpath) / Path('cnf_matrices'), f'confusion_matrix_{snr}.png'))
-        if not self.config.no_plot:
-            plt.show()
 
     def _save_test_results(self, snr_value, test_acc, test_f1, test_precision, test_recall):
         res_path = os.path.join(self.config.outputpath, f'results{run_datetime}.csv')

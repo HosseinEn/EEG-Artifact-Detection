@@ -19,7 +19,7 @@ def load_config():
     parser.add_argument('--patience', type=int, default=20)
     parser.add_argument('--log_file', type=str, default='log.txt')
     parser.add_argument('--log_level', type=str, default='INFO')
-    parser.add_argument('--no_plot', default=True, action='store_false')
+    parser.add_argument('--no_plot', default=False, action='store_false')
     parser.add_argument('--save_path', type=str, default='checkpoints')
     parser.add_argument('--mode', type=str, default='train')
     parser.add_argument('--model', type=str, default='MLP')
