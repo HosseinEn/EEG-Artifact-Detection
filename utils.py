@@ -57,3 +57,35 @@ def combine_waveforms(clean, noise, snr_db):
     labels = array([noise[1][0]] * len(noise_EEG))
 
     return (combined_data, labels)
+
+def combine_test_waveforms(clean, EOG, EMG, labels, snr_db):
+    # ratio_EOG = np.random.rand()
+    # ratio_EMG = 1 - ratio_EOG
+    ratio_EOG = 0.7
+    ratio_EMG = 0.3
+    # print(ratio_EMG, ratio_EOG, snr_db)
+
+    rms = lambda x: np.sqrt(np.mean(x ** 2, axis=1))
+
+    clean_EEG = clean
+    eog_data = EOG
+    emg_data = EMG
+
+    if snr_db is None:
+        snr_db = np.random.choice(np.arange(-7, 4.5, 0.5), (clean_EEG.shape[0],))
+
+    lambda_snr_EOG = rms(clean_EEG) / rms(eog_data) / 10 ** (snr_db / 20) * ratio_EOG
+    lambda_snr_EMG = rms(clean_EEG) / rms(emg_data) / 10 ** (snr_db / 20) * ratio_EMG
+
+    lambda_snr_EOG = np.expand_dims(lambda_snr_EOG, 1)
+    lambda_snr_EMG = np.expand_dims(lambda_snr_EMG, 1)
+
+    combined_data = clean_EEG + lambda_snr_EOG * eog_data + lambda_snr_EMG * emg_data
+
+    y = array([labels['EOG']] * len(eog_data))
+    if ratio_EMG > ratio_EOG:
+        y = array([labels['EMG']] * len(emg_data))
+
+    return combined_data, y
+
+

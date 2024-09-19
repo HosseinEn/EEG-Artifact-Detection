@@ -8,7 +8,7 @@ from torch.utils.data import Dataset
 import scipy.io as sio
 import os
 import argparse
-from utils import combine_waveforms
+from utils import *
 
 seed(2408)
 np.random.seed(1305)
@@ -18,7 +18,7 @@ class DataNoiseCombiner:
         self.config = config
         self.data_clean = self.load_samples(os.path.join(config.datapath, "EEG_all_epochs.mat"), 0)
         self.data_eog = self.load_samples(os.path.join(config.datapath, "EOG_all_epochs.mat"), 1)
-        self.data_emg = self.load_samples(os.path.join(config.datapath, "EMG_all_epochs.mat"), 2)
+        self.data_emg = self.load_samples(os.path.join(config.datapath, "filtered80Hz_EMG_all_epochs.mat"), 2)
 
         self.clean_indices = self.shuffle_indices(len(self.data_clean[0]))
         self.eog_indices = self.shuffle_indices(len(self.data_eog[0]))
@@ -86,13 +86,26 @@ class DataNoiseCombiner:
         emg_test_indices, emg_val_indices, emg_training_indices = self.split_indices(
             self.emg_indices, self.config.test_size, self.config.val_size)
 
+        # for snr in np.arange(self.config.lower_snr, self.config.higher_snr, 0.5):
+        #     X_eog, y_eog = self.combine_and_save(clean_test_indices, eog_test_indices, self.data_clean, self.data_eog, snr, "test")
+        #     X_emg, y_emg = self.combine_and_save(clean_test_indices, emg_test_indices, self.data_clean, self.data_emg, snr, "test")
+        #     X_clean, y_clean = self.data_clean[0][clean_test_indices], self.data_clean[1][clean_test_indices]
+        #
+        #     X = np.concatenate((X_eog, X_emg, X_clean), axis=0)
+        #     y = np.concatenate((y_eog, y_emg, y_clean), axis=0)
+        #     self.save_data(X, y, "test", f"snr {snr}")
+        labels = {
+            'EEG': self.data_clean[1][0],
+            'EOG': self.data_eog[1][0],
+            'EMG': self.data_emg[1][0]
+        }
         for snr in np.arange(self.config.lower_snr, self.config.higher_snr, 0.5):
-            X_eog, y_eog = self.combine_and_save(clean_test_indices, eog_test_indices, self.data_clean, self.data_eog, snr, "test")
-            X_emg, y_emg = self.combine_and_save(clean_test_indices, emg_test_indices, self.data_clean, self.data_emg, snr, "test")
             X_clean, y_clean = self.data_clean[0][clean_test_indices], self.data_clean[1][clean_test_indices]
-
-            X = np.concatenate((X_eog, X_emg, X_clean), axis=0)
-            y = np.concatenate((y_eog, y_emg, y_clean), axis=0)
+            X_noisy, y_noisy = combine_test_waveforms(self.data_clean[0][clean_test_indices],
+                                             self.data_eog[0][eog_test_indices],
+                                             self.data_emg[0][emg_test_indices], labels, snr)
+            X = np.concatenate((X_clean, X_noisy), axis=0)
+            y = np.concatenate((y_clean, y_noisy), axis=0)
             self.save_data(X, y, "test", f"snr {snr}")
 
         X_eog, y_eog = self.combine_and_save(clean_val_indices, eog_val_indices, self.data_clean, self.data_eog, None, "val")
