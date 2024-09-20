@@ -18,7 +18,7 @@ class DataNoiseCombiner:
         self.config = config
         self.data_clean = self.load_samples(os.path.join(config.datapath, "EEG_all_epochs.mat"), 0)
         self.data_eog = self.load_samples(os.path.join(config.datapath, "EOG_all_epochs.mat"), 1)
-        self.data_emg = self.load_samples(os.path.join(config.datapath, "EMG_all_epochs.mat"), 2)
+        self.data_emg = self.load_samples(os.path.join(config.datapath, "filtered80Hz_EMG_all_epochs.mat"), 2)
 
         self.clean_indices = self.shuffle_indices(len(self.data_clean[0]))
         self.eog_indices = self.shuffle_indices(len(self.data_eog[0]))
