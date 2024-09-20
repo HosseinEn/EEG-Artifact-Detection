@@ -27,7 +27,7 @@ emg = data_with_noise(data, data_label, 2, index)
 # calculate the power spectral density
 freqs, psd = power_spectral_density(clean[0])
 # plt.subplot(2, 1, 1)
-plt.title('Log PSD for three signals contaminated with noise, SNR=-7.0', fontsize=14)
+# plt.title('Log PSD for three signals contaminated with noise, SNR=-7.0', fontsize=14)
 plt.semilogy(freqs, psd, label='Clean')
 plt.legend()
 
@@ -64,5 +64,6 @@ plt.ylabel('Log PSD (V^2/Hz)', fontsize=14, fontweight='bold')
 #     plt.plot(res[real_emg_idx], label=f'n_components={n_comp} - SNR: {str(SNR)}')
 #     plt.legend()
 
+plt.xlim([1,85])
 plt.legend(fontsize=14)
 plt.show()
