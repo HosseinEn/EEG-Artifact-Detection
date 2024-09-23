@@ -4,6 +4,9 @@ from sklearn.decomposition import FastICA
 from scipy.signal import welch
 from sklearn.preprocessing import StandardScaler
 
+plt.rcParams.update({'font.size': 14})
+plt.figure(figsize=(8, 6))
+
 def power_spectral_density(signal, fs=256):
     freqs, psd = welch(signal, fs=fs)
     return freqs, psd
@@ -40,8 +43,8 @@ plt.legend()
 freqs, psd = power_spectral_density(emg[0])
 # plt.subplot(2, 1, 2)
 plt.semilogy(freqs, psd, label='EEG+EMG')
-plt.xlabel('Frequency (Hz)', fontsize=14, fontweight='bold')
-plt.ylabel('Log PSD (V^2/Hz)', fontsize=14, fontweight='bold')
+plt.xlabel('Frequency (Hz)', fontweight='bold')
+plt.ylabel('Log PSD (V^2/Hz)', fontweight='bold')
 
 # for SNR in [-6.0, 6.0]:
 #     data_snr = np.load(f'data/test/snr {str(SNR)}/X.npy')
@@ -65,5 +68,5 @@ plt.ylabel('Log PSD (V^2/Hz)', fontsize=14, fontweight='bold')
 #     plt.legend()
 
 plt.xlim([1,85])
-plt.legend(fontsize=14)
+plt.legend()
 plt.show()
