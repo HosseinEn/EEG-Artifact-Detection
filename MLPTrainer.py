@@ -21,6 +21,7 @@ import seaborn as sns
 from sklearn.metrics import confusion_matrix
 
 run_datetime = datetime.datetime.now()
+plt.rcParams.update({'font.size': 14})
 
 
 class MLPTrainer:
@@ -271,7 +272,7 @@ class MLPTrainer:
         plt.xticks(snr_values)
         plt.ylabel('Test accuracy')
         plt.yticks(np.arange(0.6, 1.05, 0.05))
-        plt.title('Relationship between SNR and classification accuracy')
+        # plt.title('Relationship between SNR and classification accuracy')
         plt.grid(True)
         plt.savefig(os.path.join(self.config.outputpath, 'snr_accuracy.png'))
         if not self.config.no_plot:
@@ -282,14 +283,14 @@ class MLPTrainer:
         plt.subplot(1, 2, 1)
         plt.plot(self.train_losses, label='Training Loss')
         plt.plot(self.val_losses, label='Validation Loss')
-        plt.xlabel('Epoch')
-        plt.ylabel('Loss')
+        plt.xlabel('Epoch',fontweight='bold')
+        plt.ylabel('Loss',fontweight='bold')
         plt.legend()
         plt.subplot(1, 2, 2)
         plt.plot(self.train_accuracies, label='Training Accuracy')
         plt.plot(self.val_accuracies, label='Validation Accuracy')
-        plt.xlabel('Epoch')
-        plt.ylabel('Accuracy')
+        plt.xlabel('Epoch',fontweight='bold')
+        plt.ylabel('Accuracy',fontweight='bold')
         plt.legend()
         plt.savefig(os.path.join(self.config.outputpath, f'combined_curves.png'))
         if not self.config.no_plot:
