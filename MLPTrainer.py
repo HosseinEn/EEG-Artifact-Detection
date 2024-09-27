@@ -21,6 +21,7 @@ import seaborn as sns
 from sklearn.metrics import confusion_matrix
 
 run_datetime = datetime.datetime.now()
+plt.rcParams.update({'font.size': 14})
 
 
 class MLPTrainer:
@@ -233,7 +234,7 @@ class MLPTrainer:
                 correct += (test_preds == test_labels).sum().item()
 
         self._log_test_metrics(test_loader, test_loss, snr_value, all_test_labels, all_test_preds, test_accuracies, snr_values)
-        self._plot_confusion_matrix(all_test_labels, all_test_preds, snr_value)
+        # self._plot_confusion_matrix(all_test_labels, all_test_preds, snr_value)
 
 
     def _log_test_metrics(self, test_loader, test_loss, snr_value, all_test_labels, all_test_preds, test_accuracies, snr_values):
@@ -254,7 +255,7 @@ class MLPTrainer:
         sns.heatmap(cm, annot=True, fmt='g', xticklabels=class_names, yticklabels=class_names)
         plt.xlabel('Predicted')
         plt.ylabel('Actual')
-        plt.title(f'Confusion Matrix {snr}')
+        plt.title(f'Confusion Matrix, SNR: {snr}dB')
         plt.savefig(os.path.join(Path(self.config.outputpath) / Path('cnf_matrices'), f'confusion_matrix_{snr}.png'))
 
     def _save_test_results(self, snr_value, test_acc, test_f1, test_precision, test_recall):
@@ -271,7 +272,7 @@ class MLPTrainer:
         plt.xticks(snr_values)
         plt.ylabel('Test accuracy')
         plt.yticks(np.arange(0.6, 1.05, 0.05))
-        plt.title('Relationship between SNR and classification accuracy')
+        # plt.title('Relationship between SNR and classification accuracy')
         plt.grid(True)
         plt.savefig(os.path.join(self.config.outputpath, 'snr_accuracy.png'))
         if not self.config.no_plot:
@@ -282,14 +283,14 @@ class MLPTrainer:
         plt.subplot(1, 2, 1)
         plt.plot(self.train_losses, label='Training Loss')
         plt.plot(self.val_losses, label='Validation Loss')
-        plt.xlabel('Epoch')
-        plt.ylabel('Loss')
+        plt.xlabel('Epoch',fontweight='bold')
+        plt.ylabel('Loss',fontweight='bold')
         plt.legend()
         plt.subplot(1, 2, 2)
         plt.plot(self.train_accuracies, label='Training Accuracy')
         plt.plot(self.val_accuracies, label='Validation Accuracy')
-        plt.xlabel('Epoch')
-        plt.ylabel('Accuracy')
+        plt.xlabel('Epoch',fontweight='bold')
+        plt.ylabel('Accuracy',fontweight='bold')
         plt.legend()
         plt.savefig(os.path.join(self.config.outputpath, f'combined_curves.png'))
         if not self.config.no_plot:

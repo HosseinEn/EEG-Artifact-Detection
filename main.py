@@ -29,6 +29,8 @@ def load_config():
     return args
 
 if __name__ == "__main__":
+    import os
+    os.system('./env_setup.sh')
     config = load_config()
     trainer = None
     if config.model == 'MLP':
