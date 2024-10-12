@@ -1,6 +1,7 @@
 import argparse
 from MLPTrainer import MLPTrainer
 import warnings
+import os
 warnings.filterwarnings("ignore")
 
 
@@ -29,9 +30,8 @@ def load_config():
     return args
 
 if __name__ == "__main__":
-    import os
-    os.system('./env_setup.sh')
     config = load_config()
+    os.system(f'./env_setup.sh {config.mode}')
     trainer = None
     if config.model == 'MLP':
         trainer = MLPTrainer(config)
