@@ -32,7 +32,7 @@ class EarlyStopping:
         return self.early_stop
 
 def setup_logging(log_file, log_level):
-    logging.basicConfig(filename=log_file, level=log_level, 
+    logging.basicConfig(filename=log_file, level=log_level,
                         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 def calculate_metrics(y_true, y_pred):
@@ -58,34 +58,44 @@ def combine_waveforms(clean, noise, snr_db):
 
     return (combined_data, labels)
 
-def combine_test_waveforms(clean, EOG, EMG, labels, snr_db):
-    # ratio_EOG = np.random.rand()
-    # ratio_EMG = 1 - ratio_EOG
-    ratio_EOG = 0.7
-    ratio_EMG = 0.3
-    # print(ratio_EMG, ratio_EOG, snr_db)
 
+
+
+def combine_noise_simultaneously(clean, noises, snrs_db, config):
     rms = lambda x: np.sqrt(np.mean(x ** 2, axis=1))
 
-    clean_EEG = clean
-    eog_data = EOG
-    emg_data = EMG
+    clean_EEG = clean[0]
+    num_samples = clean_EEG.shape[0]
 
-    if snr_db is None:
-        snr_db = np.random.choice(np.arange(-7, 4.5, 0.5), (clean_EEG.shape[0],))
+    combined_data = clean_EEG.copy()
+    total_noise = np.zeros_like(clean_EEG)
 
-    lambda_snr_EOG = rms(clean_EEG) / rms(eog_data) / 10 ** (snr_db / 20) * ratio_EOG
-    lambda_snr_EMG = rms(clean_EEG) / rms(emg_data) / 10 ** (snr_db / 20) * ratio_EMG
+    if snrs_db is None:
+        for noise in noises:
+            snr_db = np.random.choice(np.arange(config.lower_snr, config.higher_snr), (num_samples,))
+            noise_EEG = noise[0]
+            rms_clean = rms(clean_EEG)
+            rms_noise = rms(noise_EEG)
+            lambda_n = (rms_clean / rms_noise) / (10 ** (snr_db / 20))
+            lambda_n = lambda_n[:, np.newaxis]
 
-    lambda_snr_EOG = np.expand_dims(lambda_snr_EOG, 1)
-    lambda_snr_EMG = np.expand_dims(lambda_snr_EMG, 1)
+            scaled_noise = noise_EEG * lambda_n
+            total_noise += scaled_noise
+    else:
+        for noise, snr in zip(noises, snrs_db):
+            noise_EEG = noise[0]
+            rms_clean = rms(clean_EEG)
+            rms_noise = rms(noise_EEG)
+            lambda_n = (rms_clean / rms_noise) / (10 ** (snr / 20))
+            lambda_n = lambda_n[:, np.newaxis]
 
-    combined_data = clean_EEG + lambda_snr_EOG * eog_data + lambda_snr_EMG * emg_data
+            scaled_noise = noise_EEG * lambda_n
+            total_noise += scaled_noise
 
-    y = array([labels['EOG']] * len(eog_data))
-    if ratio_EMG > ratio_EOG:
-        y = array([labels['EMG']] * len(emg_data))
+    combined_data += total_noise
 
-    return combined_data, y
+    labels = np.full((num_samples,), noises[np.argmin(snrs_db)][1][0])
+
+    return combined_data, labels
 
 

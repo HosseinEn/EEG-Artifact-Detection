@@ -86,7 +86,7 @@ class DataNoiseCombiner:
         emg_test_indices, emg_val_indices, emg_training_indices = self.split_indices(
             self.emg_indices, self.config.test_size, self.config.val_size)
 
-        # for snr in np.arange(self.config.lower_snr, self.config.higher_snr, 0.5):
+        # for snr in np.arange(self.config.lower_snr, self.config.higher_snr, 2):
         #     X_eog, y_eog = self.combine_and_save(clean_test_indices, eog_test_indices, self.data_clean, self.data_eog, snr, "test")
         #     X_emg, y_emg = self.combine_and_save(clean_test_indices, emg_test_indices, self.data_clean, self.data_emg, snr, "test")
         #     X_clean, y_clean = self.data_clean[0][clean_test_indices], self.data_clean[1][clean_test_indices]
@@ -94,16 +94,14 @@ class DataNoiseCombiner:
         #     X = np.concatenate((X_eog, X_emg, X_clean), axis=0)
         #     y = np.concatenate((y_eog, y_emg, y_clean), axis=0)
         #     self.save_data(X, y, "test", f"snr {snr}")
-        labels = {
-            'EEG': self.data_clean[1][0],
-            'EOG': self.data_eog[1][0],
-            'EMG': self.data_emg[1][0]
-        }
-        for snr in np.arange(self.config.lower_snr, self.config.higher_snr, 0.5):
+
+        for snr in np.arange(self.config.lower_snr, self.config.higher_snr, 2):
             X_clean, y_clean = self.data_clean[0][clean_test_indices], self.data_clean[1][clean_test_indices]
-            X_noisy, y_noisy = combine_test_waveforms(self.data_clean[0][clean_test_indices],
-                                             self.data_eog[0][eog_test_indices],
-                                             self.data_emg[0][emg_test_indices], labels, snr)
+            X_noisy, y_noisy = combine_noise_simultaneously(
+                (self.data_clean[0][clean_test_indices], self.data_clean[1][clean_test_indices]),
+                [(self.data_eog[0][eog_test_indices], self.data_eog[1][eog_test_indices]),
+                 (self.data_emg[0][emg_test_indices], self.data_emg[1][emg_test_indices])],
+                [snr, 2.0], self.config)
             X = np.concatenate((X_clean, X_noisy), axis=0)
             y = np.concatenate((y_clean, y_noisy), axis=0)
             self.save_data(X, y, "test", f"snr {snr}")
@@ -112,16 +110,26 @@ class DataNoiseCombiner:
         X_emg, y_emg = self.combine_and_save(clean_val_indices, emg_val_indices, self.data_clean, self.data_emg, None, "val")
         X_clean, y_clean = self.data_clean[0][clean_val_indices], self.data_clean[1][clean_val_indices]
 
-        X = np.concatenate((X_eog, X_emg, X_clean), axis=0)
-        y = np.concatenate((y_eog, y_emg, y_clean), axis=0)
+        X_both_noise_val, y_both_noise_val = combine_noise_simultaneously(
+            (self.data_clean[0][clean_val_indices], self.data_clean[1][clean_val_indices]),
+            [(self.data_eog[0][eog_val_indices], self.data_eog[1][eog_val_indices]),
+             (self.data_emg[0][emg_val_indices], self.data_emg[1][emg_val_indices])],
+            None, self.config)
+        X = np.concatenate((X_eog, X_emg, X_clean,), axis=0)
+        y = np.concatenate((y_eog, y_emg, y_clean,), axis=0)
         self.save_data(X, y, "val")
 
         X_eog, y_eog = self.combine_and_save(clean_training_indices, eog_training_indices, self.data_clean, self.data_eog, None, "train")
         X_emg, y_emg = self.combine_and_save(clean_training_indices, emg_training_indices, self.data_clean, self.data_emg, None, "train")
         X_clean, y_clean = self.data_clean[0][clean_training_indices], self.data_clean[1][clean_training_indices]
 
-        X = np.concatenate((X_eog, X_emg, X_clean), axis=0)
-        y = np.concatenate((y_eog, y_emg, y_clean), axis=0)
+        X_both_noise, y_both_noise = combine_noise_simultaneously(
+            (self.data_clean[0][clean_training_indices], self.data_clean[1][clean_training_indices]),
+            [(self.data_eog[0][eog_training_indices], self.data_eog[1][eog_training_indices]),
+             (self.data_emg[0][emg_training_indices], self.data_emg[1][emg_training_indices])],
+            None, self.config)
+        X = np.concatenate((X_eog, X_emg, X_clean, ), axis=0)
+        y = np.concatenate((y_eog, y_emg, y_clean, ), axis=0)
         self.save_data(X, y, "train")
 
 if __name__ == "__main__":
@@ -133,5 +141,3 @@ if __name__ == "__main__":
     parser.add_argument('--val_size', type=float, default=0.2)
     args = parser.parse_args()
     combiner = DataNoiseCombiner(args)
-
-
