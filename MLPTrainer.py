@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from sklearn.decomposition import PCA, FastICA
 from sklearn.preprocessing import StandardScaler
-from models import ArtifactDetectionNN
+from models import ArtifactDetectionNN,ArtifactDetectionCNN
 from dataset import EEGDataset
 from datanoise_combiner import DataNoiseCombiner
 from utils import calculate_metrics, setup_logging, EarlyStopping
@@ -74,7 +74,10 @@ class MLPTrainer:
     def _init_model(self):
         feature_size = next(iter(self.test_datasets.values())).features.shape[1]
         print(f'Feature shape: {feature_size}')
-        self.model = ArtifactDetectionNN(feature_size).to(self.device)
+        if self.config.model == 'MLP':
+            self.model = ArtifactDetectionNN(feature_size).to(self.device)
+        elif self.config.model == 'CNN':
+            self.model = ArtifactDetectionCNN(feature_size).to(self.device)
 
     def _init_training_components(self):
         self.criterion = CrossEntropyLoss()
@@ -234,7 +237,7 @@ class MLPTrainer:
                 correct += (test_preds == test_labels).sum().item()
 
         self._log_test_metrics(test_loader, test_loss, snr_value, all_test_labels, all_test_preds, test_accuracies, snr_values)
-        # self._plot_confusion_matrix(all_test_labels, all_test_preds, snr_value)
+        self._plot_confusion_matrix(all_test_labels, all_test_preds, snr_value)
 
 
     def _log_test_metrics(self, test_loader, test_loss, snr_value, all_test_labels, all_test_preds, test_accuracies, snr_values):
@@ -249,7 +252,7 @@ class MLPTrainer:
         self._save_test_results(snr_value, test_acc, test_f1, test_precision, test_recall)
 
     def _plot_confusion_matrix(self, test_labels, test_preds, snr):
-        cm = confusion_matrix(test_labels, test_preds)
+        cm = confusion_matrix(test_labels, test_preds, labels=[0,1,2])
         plt.figure(figsize=(10, 7))
         class_names = ['EEG', 'EOG', 'EMG']
         sns.heatmap(cm, annot=True, fmt='g', xticklabels=class_names, yticklabels=class_names)
@@ -266,7 +269,7 @@ class MLPTrainer:
             f.write(f'{snr_value},{test_acc},{test_f1},{test_precision},{test_recall}\n')
 
     def _plot_test_results(self, snr_values, test_accuracies):
-        plt.figure(figsize=(10, 5))
+        plt.figure(figsize=(15, 5))
         plt.plot(snr_values, test_accuracies, marker='o', color='b')
         plt.xlabel('SNR [dB]')
         plt.xticks(snr_values)
