@@ -33,8 +33,5 @@ if __name__ == "__main__":
     config = load_config()
     os.system(f'./env_setup.sh {config.mode}')
     trainer = None
-    if config.model == 'MLP':
-        trainer = MLPTrainer(config)
-    elif config.model == '...':
-        pass
+    trainer = MLPTrainer(config)
     trainer.run()
