@@ -16,8 +16,8 @@ np.random.seed(1305)
 class DataNoiseCombiner:
     def __init__(self, config):
         self.config = config
-        self.data_clean = self.load_samples(os.path.join(config.datapath, "EEG_all_epochs.mat"), 0)
-        self.data_eog = self.load_samples(os.path.join(config.datapath, "EOG_all_epochs.mat"), 1)
+        self.data_clean = self.load_samples(os.path.join(config.datapath, "filtered80Hz_EEG_all_epochs.mat"), 0)
+        self.data_eog = self.load_samples(os.path.join(config.datapath, "filtered80Hz_EOG_all_epochs.mat"), 1)
         self.data_emg = self.load_samples(os.path.join(config.datapath, "filtered80Hz_EMG_all_epochs.mat"), 2)
 
         self.clean_indices = self.shuffle_indices(len(self.data_clean[0]))

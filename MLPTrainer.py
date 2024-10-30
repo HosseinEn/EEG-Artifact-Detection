@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from sklearn.decomposition import PCA, FastICA
 from sklearn.preprocessing import StandardScaler
-from models import ArtifactDetectionNN,ArtifactDetectionCNN
+from models import ArtifactDetectionNN,ArtifactDetectionCNN,ConvNet
 from dataset import EEGDataset
 from datanoise_combiner import DataNoiseCombiner
 from utils import calculate_metrics, setup_logging, EarlyStopping
@@ -78,6 +78,8 @@ class MLPTrainer:
             self.model = ArtifactDetectionNN(feature_size).to(self.device)
         elif self.config.model == 'CNN':
             self.model = ArtifactDetectionCNN(feature_size).to(self.device)
+        elif self.config.model == 'SincNet':
+            self.model = ConvNet(sr=256,min_band_hz=1,kernel_mult=3.903).to(self.device)
 
     def _init_training_components(self):
         self.criterion = CrossEntropyLoss()
@@ -201,7 +203,7 @@ class MLPTrainer:
 
     def _save_checkpoint(self):
         checkpoint_path = os.path.join(self.config.save_path, 'best_model.pth')
-        torch.save(self.model.state_dict(), checkpoint_path)
+        torch.save(self.model, checkpoint_path)
         logging.info(f"Model checkpoint saved at {checkpoint_path}")
 
     def test(self):
@@ -216,7 +218,7 @@ class MLPTrainer:
         self._plot_test_results(snr_values, test_accuracies)
 
     def _load_best_model(self):
-        self.model.load_state_dict(torch.load(os.path.join(self.config.save_path, 'best_model.pth')))
+        self.model = torch.load(os.path.join(self.config.save_path, 'best_model.pth'))
         self.model.to(self.device)
 
     def _evaluate_test_set(self, test_loader, snr_value, test_accuracies, snr_values):

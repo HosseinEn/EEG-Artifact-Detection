@@ -32,6 +32,5 @@ def load_config():
 if __name__ == "__main__":
     config = load_config()
     os.system(f'./env_setup.sh {config.mode}')
-    trainer = None
     trainer = MLPTrainer(config)
     trainer.run()
