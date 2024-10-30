@@ -16,7 +16,7 @@ def data_with_noise(data, labels, noise_no, n):
     return data[index], index
 
 n_comp = 80
-index = np.random.random_integers(1,700)
+index = np.random.randint(1,700+1)
 
 random_state = 42
 
@@ -45,28 +45,16 @@ freqs, psd = power_spectral_density(emg[0])
 plt.semilogy(freqs, psd, label='EEG+EMG')
 plt.xlabel('Frequency (Hz)', fontweight='bold')
 plt.ylabel('Log PSD (V^2/Hz)', fontweight='bold')
-
-# for SNR in [-6.0, 6.0]:
-#     data_snr = np.load(f'data/test/snr {str(SNR)}/X.npy')
-#     data_snr_label = np.load(f'data/test/snr {str(SNR)}/Y.npy')
-#
-#     ica = FastICA(n_components=n_comp, random_state=random_state)
-#     res = ica.fit_transform(data_snr)
-#
-#     data_clean, real_clean_idx = data_with_noise(data_snr, data_snr_label, 0, index)
-#     data_eog, real_eog_idx = data_with_noise(data_snr, data_snr_label, 1, index)
-#     data_emg, real_emg_idx = data_with_noise(data_snr, data_snr_label, 2, index)
-#
-#     plt.subplot(2, 1, 1)
-#     plt.title('Signal - EMG Data')
-#     plt.plot(data_emg, label='Original - SNR: ' + str(SNR))
-#     plt.legend()
-#
-#     plt.subplot(2, 1, 2)
-#     plt.title('ICA')
-#     plt.plot(res[real_emg_idx], label=f'n_components={n_comp} - SNR: {str(SNR)}')
-#     plt.legend()
-
 plt.xlim([1,85])
 plt.legend()
+plt.show()
+
+plt.figure(figsize=(10, 6))
+plt.plot(clean[0], label='Clean')
+plt.plot(eog[0], label='EOG')
+plt.plot(emg[0], label='EMG')
+plt.legend()
+plt.xlabel('Time (ms)', fontweight='bold')
+plt.ylabel('Amplitude (V)', fontweight='bold')
+plt.title('Original Signal and Noises', fontweight='bold')
 plt.show()
