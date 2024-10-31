@@ -254,9 +254,9 @@ class MLPTrainer:
         self._save_test_results(snr_value, test_acc, test_f1, test_precision, test_recall)
 
     def _plot_confusion_matrix(self, test_labels, test_preds, snr):
-        cm = confusion_matrix(test_labels, test_preds, labels=[0,1,2])
+        cm = confusion_matrix(test_labels, test_preds, labels=[0,1,2,3])
         plt.figure(figsize=(10, 7))
-        class_names = ['EEG', 'EOG', 'EMG']
+        class_names = ['EEG', 'EOG', 'EMG','white_noise']
         sns.heatmap(cm, annot=True, fmt='g', xticklabels=class_names, yticklabels=class_names)
         plt.xlabel('Predicted')
         plt.ylabel('Actual')
