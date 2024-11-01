@@ -8,8 +8,10 @@ def wavelet_transform(signal, wavelet='db4', level=4):
     details = coeffs[1:]
     return np.concatenate([approx.flatten()])
 
-def power_spectral_density(signal, fs=512):
+def power_spectral_density(signal, fs=256):
     freqs, psd = welch(signal, fs=fs)
+    # mask = (freqs >= 1) & (freqs <= 80)
+    # psd = psd[mask]
     return psd
 
 def extract_features(eeg_signals):
