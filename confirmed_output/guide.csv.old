@@ -1,0 +1,24 @@
+Description,Filename
+"signal",results2024-07-26 13:16:24.625450.csv
+"signal and PCA",results2024-07-26 13:25:30.233507.csv
+"signal, PSD and PCA",results2024-07-26 13:26:59.877908.csv
+"var, skewness, kurt, rms, entropy, PSD and PCA",results2024-07-26 13:29:20.486983.csv
+"wavelet approximation",results2024-07-26 13:35:07.366494.csv
+"whole wavelet",results2024-07-26 13:44:22.582807.csv
+"signal and ICA",results2024-07-26 13:46:47.112663.csv
+"signal, ICA and PCA",results2024-07-26 13:48:12.253091.csv
+"signal, PSD, ICA and PCA",results2024-07-26 13:50:32.124638.csv
+"wavelet approximation, PSD, ICA and PCA",results2024-07-26 13:54:56.654094.csv
+"last level approximation + all details (except the nth level), PSD, ICA and PCA",results2024-07-29 14:14:31.364610.csv
+"last level approximation + all details (except the nth level), PSD and PCA",results2024-07-29 19:00:28.426737.csv
+"Input: PSD",results2024-10-21 13:54:04.165779.csv
+"Input: Signal",results2024-10-21 13:44:43.469247.csv
+"Input: Wavelet Approximation, PSD",results2024-10-21 13:36:55.777382.csv
+"zscore before feature extraction",results2024-08-23 15:55:16.361306.csv
+"zscore, without StandardScaler",results2024-08-23 15:58:45.075486.csv
+"wavelet packet energy",results2024-09-01 11:23:40.452856.csv
+"(without dropout, layers: 64, 32) Input: wavelet approximation, PSD",results2024-09-01 16:07:11.974591.csv
+"(filterd between 1 and 120 Hz) Input: wavelet approximation (6 level), PSD",results2024-09-18 09:17:25.503112.csv
+"(filterd between 1 and 120 Hz) Input: wavelet approximation (12 levels), PSD",results2024-09-18 09:19:13.825664.csv
+"(filterd between 1 and 120 Hz) Input: wavelet approximation, PSD",results2024-09-04 16:02:36.583252.csv
+"signal",results2024-09-06 21:02:51.974553.csv
