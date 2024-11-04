@@ -15,17 +15,19 @@ np.random.seed(1305)
 class DataNoiseCombiner:
     def __init__(self, config):
         self.config = config
-        self.data_clean = self.load_samples(os.path.join(config.datapath, "filtered80Hz_EEG_all_epochs.mat"), 0)
-        self.data_eog = self.load_samples(os.path.join(config.datapath, "filtered80Hz_EOG_all_epochs.mat"), 1)
-        self.data_emg = self.load_samples(os.path.join(config.datapath, "filtered80Hz_EMG_all_epochs.mat"), 2)
-        self.white_noise = self.load_samples(os.path.join(config.datapath, "white_noise.mat"), 3)
-        self.clean_indices = self.shuffle_indices(len(self.data_clean[0]))
-        self.eog_indices = self.shuffle_indices(len(self.data_eog[0]))
-        self.emg_indices = self.shuffle_indices(len(self.data_emg[0]))
-        self.white_noise_indices = self.shuffle_indices(len(self.white_noise[0]))
+        self.data_clean = self.load_samples(os.path.join(config.datapath, "filtered80Hz_EEG_all_epochs.mat"))
+        self.data_eog = self.load_samples(os.path.join(config.datapath, "filtered80Hz_EOG_all_epochs.mat"))
+        self.data_eog = np.repeat(self.data_eog, np.ceil(len(self.data_clean) / len(self.data_eog)), axis=0)[: len(self.data_clean), :]
+        self.data_emg = self.load_samples(os.path.join(config.datapath, "filtered80Hz_EMG_all_epochs.mat"))
+        self.data_emg = np.repeat(self.data_emg, np.ceil(len(self.data_clean) / len(self.data_emg)), axis=0)[: len(self.data_clean), :]
+        self.white_noise = self.load_samples(os.path.join(config.datapath, "white_noise.mat"))
+        self.clean_indices = self.shuffle_indices(len(self.data_clean))
+        self.eog_indices = self.shuffle_indices(len(self.data_eog))
+        self.emg_indices = self.shuffle_indices(len(self.data_emg))
+        self.white_noise_indices = self.shuffle_indices(len(self.white_noise))
         self.process_and_save_data()
 
-    def load_samples(self, path, label=None):
+    def load_samples(self, path):
         path = Path(path)
         data = sio.loadmat(path) if path.suffix == ".mat" else (
             genfromtxt(path, delimiter=",") if path.suffix == ".csv" else (
@@ -33,8 +35,12 @@ class DataNoiseCombiner:
         if data is None:
             raise ValueError(f"Unsupported file type: {path.suffix}")
         X = next(value for value in data.values() if isinstance(value, np.ndarray)) if path.suffix == ".mat" else data
-        X = np.repeat(X, np.ceil(len(self.data_clean[0]) / len(X)), axis=0)[: len(self.data_clean[0]), :] if label in [1, 2] else X
-        return X, array([label] * len(X)) if label is not None else None
+        X = self.augment_data(X, len(X)*2)
+        return X
+
+    def augment_data(self, data, num_samples):
+        data = np.repeat(data, 4, axis=0)
+        return data[:num_samples]
 
     @staticmethod
     def shuffle_indices(length):
@@ -52,37 +58,34 @@ class DataNoiseCombiner:
         np.save(directory / "X.npy", zscore(X, axis=1))
         np.save(directory / "Y.npy", y)
 
-    def combine_and_save(self, clean_indices, noise_indices, data_clean, data_noise, snr):
-        combined_data = combine_waveforms((data_clean[0][clean_indices], data_clean[0][clean_indices]),
-                                          (data_noise[0][noise_indices], data_noise[1][noise_indices]), snr_db=snr)
-        return combined_data[0], combined_data[1]
 
     def process_and_save_data(self):
         clean_test_indices, clean_val_indices, clean_training_indices = self.split_indices(self.clean_indices, self.config.test_size, self.config.val_size)
         eog_test_indices, eog_val_indices, eog_training_indices = self.split_indices(self.eog_indices, self.config.test_size, self.config.val_size)
         emg_test_indices, emg_val_indices, emg_training_indices = self.split_indices(self.emg_indices, self.config.test_size, self.config.val_size)
         wn_test_indices, wn_val_indices, wn_training_indices = self.split_indices(self.white_noise_indices, self.config.test_size, self.config.val_size)
-        SNR_white, SNR_EOG, SNR_EMG = -7, 3, 3
-        X_clean, y_clean = self.data_clean[0][clean_test_indices], self.data_clean[1][clean_test_indices]
-        X_noisy, y_noisy = combine_noise_simultaneously(
-            (self.data_clean[0][clean_test_indices], self.data_clean[1][clean_test_indices]),
-            [
-                (self.white_noise[0][wn_test_indices], self.white_noise[1][wn_test_indices]),
-                (self.data_eog[0][eog_test_indices], self.data_eog[1][eog_test_indices]),
-                (self.data_emg[0][emg_test_indices], self.data_emg[1][emg_test_indices])],
-            [SNR_white, SNR_EOG, SNR_EMG],
-            self.config)
-        self.save_data(X_noisy, y_noisy, "test", f"snr {min(SNR_white, SNR_EOG, SNR_EMG)}")
+        train_noises = {
+            'White_noise': self.white_noise[wn_training_indices],
+            'EOG': self.data_eog[eog_training_indices],
+            'EMG': self.data_emg[emg_training_indices]
+        }
+        X_train, y_train = combine_data(clean_data=self.data_clean[clean_training_indices], noises=train_noises)
+        self.save_data(X_train, y_train, "train")
+        val_noises = {
+            'White_noise': self.white_noise[wn_val_indices],
+            'EOG': self.data_eog[eog_val_indices],
+            'EMG': self.data_emg[emg_val_indices]
+        }
+        X_val, y_val = combine_data(clean_data=self.data_clean[clean_val_indices], noises=val_noises)
+        self.save_data(X_val, y_val, "val")
+        test_noises = {
+            'White_noise': self.white_noise[wn_test_indices],
+            'EOG': self.data_eog[eog_test_indices],
+            'EMG': self.data_emg[emg_test_indices]
+        }
+        X_test, y_test = combine_data(clean_data=self.data_clean[clean_test_indices], noises=test_noises)
+        self.save_data(X_test, y_test, "test")
 
-        subsets = [("val", clean_val_indices, wn_val_indices, eog_val_indices, emg_val_indices),
-         ("train", clean_training_indices, wn_training_indices, eog_training_indices, emg_training_indices)]
-        for subset_name, clean_indices, wn_indices, eog_indices, emg_indices in subsets:
-            X_eog, y_eog = self.combine_and_save(clean_indices, eog_indices, self.data_clean, self.data_eog, None)
-            X_emg, y_emg = self.combine_and_save(clean_indices, emg_indices, self.data_clean, self.data_emg, None)
-            X_wn, y_wn = self.combine_and_save(clean_indices, wn_indices, self.data_clean, self.white_noise, None)
-            X_clean, y_clean = self.data_clean[0][clean_indices], self.data_clean[1][clean_indices]
-            self.save_data(np.concatenate((X_eog, X_emg, X_clean, X_wn), axis=0),
-                           np.concatenate((y_eog, y_emg, y_clean, y_wn), axis=0), subset_name)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

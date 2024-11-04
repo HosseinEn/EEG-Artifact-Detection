@@ -17,8 +17,8 @@ def power_spectral_density(signal, fs=256):
 def extract_features(eeg_signals):
     features = []
     for signal in eeg_signals:
-        wavelet_features = wavelet_transform(signal)
-        psd = power_spectral_density(signal)
-        feature_vector = np.concatenate([wavelet_features, psd])
+        # wavelet_features = wavelet_transform(signal)
+        # psd = power_spectral_density(signal)
+        feature_vector = np.concatenate([signal])
         features.append(feature_vector)
     return np.array(features)
