@@ -35,7 +35,7 @@ class DataNoiseCombiner:
         if data is None:
             raise ValueError(f"Unsupported file type: {path.suffix}")
         X = next(value for value in data.values() if isinstance(value, np.ndarray)) if path.suffix == ".mat" else data
-        X = self.augment_data(X, len(X)*2)
+        # X = self.augment_data(X, len(X)*2)
         return X
 
     def augment_data(self, data, num_samples):
@@ -93,6 +93,6 @@ if __name__ == "__main__":
     parser.add_argument('--lower_snr', type=float, default=-7)
     parser.add_argument('--higher_snr', type=float, default=4.5)
     parser.add_argument('--test_size', type=float, default=0.25)
-    parser.add_argument('--val_size', type=float, default=0.2)
+    parser.add_argument('--val_size', type=float, default=0.1)
     args = parser.parse_args()
     DataNoiseCombiner(args)
