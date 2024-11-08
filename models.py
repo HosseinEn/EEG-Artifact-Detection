@@ -8,7 +8,7 @@ class ArtifactDetectionNN(nn.Module):
         super(ArtifactDetectionNN, self).__init__()
         self.fc1 = nn.Linear(input_dim, 128)
         self.fc2 = nn.Linear(128, 64)
-        self.fc3 = nn.Linear(64, 3)  # 3 classes: 0, 1, 2
+        self.fc3 = nn.Linear(64, 4)
         self.relu = nn.ReLU()
         self.dropout = nn.Dropout(0.6)
 
@@ -17,7 +17,7 @@ class ArtifactDetectionNN(nn.Module):
         x = self.dropout(x)
         x = self.relu(self.fc2(x))
         x = self.fc3(x)
-        return x
+        return F.softmax(x, dim=1)
 
 class ArtifactDetectionCNN(nn.Module):
     def __init__(self, input_dim):

@@ -18,7 +18,8 @@ from datanoise_combiner import DataNoiseCombiner
 from utils import calculate_metrics, setup_logging, EarlyStopping
 import numpy as np
 import seaborn as sns
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, accuracy_score
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 run_datetime = datetime.datetime.now()
 plt.rcParams.update({'font.size': 14})
@@ -84,7 +85,8 @@ class MLPTrainer:
     def _init_training_components(self):
         self.criterion = CrossEntropyLoss()
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.config.learning_rate)
-        self.early_stopping = EarlyStopping(patience=20, min_delta=0)
+        self.early_stopping = EarlyStopping(patience=10, min_delta=0)
+        self.scheduler = ReduceLROnPlateau(self.optimizer, mode='min', factor=0.5, patience=5, verbose=True)
         self.train_loader, self.val_loader = self._split_dataset()
 
     def _init_metrics(self):
@@ -182,6 +184,8 @@ class MLPTrainer:
 
         self._log_epoch_metrics(epoch, val_loss, all_val_labels, all_val_preds, 'Validation')
 
+        self.scheduler.step(val_loss)
+
         if val_loss < self.best_val_loss:
             self.best_val_loss = val_loss
             self._save_checkpoint()
@@ -254,9 +258,9 @@ class MLPTrainer:
         self._save_test_results(snr_value, test_acc, test_f1, test_precision, test_recall)
 
     def _plot_confusion_matrix(self, test_labels, test_preds, snr):
-        cm = confusion_matrix(test_labels, test_preds, labels=[0,1,2])
+        cm = confusion_matrix(test_labels, test_preds, labels=[0,1,2,3])
         plt.figure(figsize=(10, 7))
-        class_names = ['EEG', 'EOG', 'EMG']
+        class_names = ['EEG', 'EOG', 'EMG','White Noise']
         sns.heatmap(cm, annot=True, fmt='g', xticklabels=class_names, yticklabels=class_names)
         plt.xlabel('Predicted')
         plt.ylabel('Actual')
