@@ -6,7 +6,7 @@ from keras.models import Sequential
 from keras.layers import Dense, Activation, Flatten, Dropout, Conv1D, MaxPooling1D
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_absolute_error, accuracy_score
+from sklearn.metrics import mean_absolute_error, mean_squared_error
 from matplotlib import pyplot as plt
 import seaborn as sb
 import matplotlib.pyplot as plt
@@ -104,4 +104,4 @@ y_pred = model.predict(X_test)
 
 r2_metric = keras.metrics.R2Score()
 r2_metric.update_state(y_true=y_test, y_pred=y_pred)
-print(mean_absolute_error(y_test, y_pred), r2_metric.result().numpy())
+print(mean_squared_error(y_test, y_pred), r2_metric.result().numpy())

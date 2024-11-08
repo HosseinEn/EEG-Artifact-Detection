@@ -38,10 +38,18 @@ class ArtifactDetectionCNN(nn.Module):
 
         self.flatten_dim = self._get_flatten_dim(input_dim)
 
-        self.fc1 = nn.Linear(self.flatten_dim, 256)  # Dense(256) in Keras
+        self.fc1 = nn.Linear(self.flatten_dim, 256)
         self.dropout1 = nn.Dropout(0.5)
-        self.fc2 = nn.Linear(256, 128)  # Dense(128) in Keras
-        self.fc3 = nn.Linear(128, 1)  # Dense(1) in Keras (no activation for regression)
+        self.fc2 = nn.Linear(256, 128)
+        self.fc3 = nn.Linear(128, 1)
+        self._initialize_weights()
+
+    def _initialize_weights(self):
+        for layer in self.modules():
+            if isinstance(layer, nn.Conv1d) or isinstance(layer, nn.Linear):
+                nn.init.kaiming_uniform_(layer.weight, nonlinearity='relu')
+                if layer.bias is not None:
+                    nn.init.zeros_(layer.bias)
 
     def _get_flatten_dim(self, input_dim):
         x = torch.zeros(1, 1, input_dim)
