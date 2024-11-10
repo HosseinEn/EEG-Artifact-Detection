@@ -8,7 +8,7 @@ def wavelet_transform(signal, wavelet='db4', level=4):
     details = coeffs[1:]
     return np.concatenate([approx.flatten()])
 
-def power_spectral_density(signal, fs=512):
+def power_spectral_density(signal, fs=256):
     freqs, psd = welch(signal, fs=fs)
     return psd
 
