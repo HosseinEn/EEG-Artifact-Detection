@@ -3,19 +3,30 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+seed = 42
+torch.manual_seed(seed)
+torch.cuda.manual_seed(seed)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+
 class ArtifactDetectionNN(nn.Module):
     def __init__(self, input_dim):
         super(ArtifactDetectionNN, self).__init__()
         self.fc1 = nn.Linear(input_dim, 128)
+        self.bn1 = nn.BatchNorm1d(128)
         self.fc2 = nn.Linear(128, 64)
+        self.bn2 = nn.BatchNorm1d(64)
         self.fc3 = nn.Linear(64, 4)
         self.relu = nn.ReLU()
         self.dropout = nn.Dropout(0.6)
+        torch.nn.init.kaiming_normal_(self.fc1.weight, nonlinearity='relu')  # For ReLU
+        torch.nn.init.kaiming_normal_(self.fc2.weight, nonlinearity='relu')
+        torch.nn.init.kaiming_normal_(self.fc3.weight, nonlinearity='relu')
 
     def forward(self, x):
-        x = self.relu(self.fc1(x))
+        x = self.relu(self.bn1(self.fc1(x)))
         x = self.dropout(x)
-        x = self.relu(self.fc2(x))
+        x = self.relu(self.bn2(self.fc2(x)))
         x = self.fc3(x)
         return x
 
