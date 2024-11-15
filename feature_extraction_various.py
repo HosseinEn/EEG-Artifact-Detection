@@ -1,0 +1,27 @@
+import numpy as np
+import pywt
+from scipy.signal import welch
+from scipy.stats import kurtosis, skew
+
+def wavelet_transform(signal, wavelet='db4', level=4):
+    coeffs = pywt.wavedec(signal, wavelet, level=level)
+    approx = coeffs[0]
+    details = coeffs[1:]
+    return np.concatenate([approx.flatten()])
+
+def power_spectral_density(signal, fs=256):
+    freqs, psd = welch(signal, fs=fs)
+    mask = (freqs >= 1) & (freqs <= 80)
+    psd = psd[mask]
+    return psd
+
+def extract_features(eeg_signals):
+    features = []
+    for signal in eeg_signals:
+        # wavelet_features = wavelet_transform(signal)
+        psd = power_spectral_density(signal)
+        kurt = kurtosis(signal)
+        # sk = skew(signal)
+        feature_vector = np.concatenate([psd, [kurt]])
+        features.append(feature_vector)
+    return np.array(features)
