@@ -3,6 +3,7 @@ from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_sc
 import numpy as np
 from numpy import array
 from scipy.signal import firwin, filtfilt
+from scipy.stats import zscore
 
 
 class EarlyStopping:
@@ -28,7 +29,7 @@ class EarlyStopping:
 
 def setup_logging(log_file, log_level):
     logging.basicConfig(filename=log_file, level=log_level,
-                        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+                        format='%(asctime)s - %(levelname)s - %(message)s', filemode='w')
 
 def calculate_metrics(y_true, y_pred):
     acc = accuracy_score(y_true, y_pred)
@@ -39,10 +40,10 @@ def calculate_metrics(y_true, y_pred):
 
 def combine_waveforms(clean, noise, snr_db):
     rms = lambda x: np.sqrt(np.mean(x ** 2, axis=1))
-    clean_EEG = clean[0]
-    noise_EEG = noise[0]
+    clean_EEG = zscore(clean[0], axis=1)
+    noise_EEG = zscore(noise[0], axis=1)
     if snr_db is None:
-        snr_db = np.random.choice(np.arange(-7, 4.5, 0.5), (noise_EEG.shape[0],))
+        snr_db = np.random.choice(np.arange(-7, 6, 0.5), (noise_EEG.shape[0],))
     lambda_snr = rms(clean_EEG) / rms(noise_EEG) / 10 ** (snr_db / 20)
     lambda_snr = np.expand_dims(lambda_snr, 1)
     combined_data = clean_EEG + lambda_snr * noise_EEG
@@ -52,15 +53,15 @@ def combine_waveforms(clean, noise, snr_db):
 
 def combine_noise_simultaneously(clean, noises, snrs_db, config):
     rms = lambda x: np.sqrt(np.mean(x ** 2, axis=1))
-    clean_EEG = clean[0]
+    clean_EEG = zscore(clean[0], axis=1)
+    rms_clean = rms(clean_EEG)
     num_samples = clean_EEG.shape[0]
     combined_data = clean_EEG.copy()
     total_noise = np.zeros_like(clean_EEG)
     if snrs_db is None:
         for noise in noises:
-            snr_db = np.random.choice(np.arange(config.lower_snr, config.higher_snr), (num_samples,))
-            noise_EEG = noise[0]
-            rms_clean = rms(clean_EEG)
+            snr_db = np.random.choice(np.arange(-7, 6), (num_samples,))
+            noise_EEG = zscore(noise[0], axis=1)
             rms_noise = rms(noise_EEG)
             lambda_n = (rms_clean / rms_noise) / (10 ** (snr_db / 20))
             lambda_n = lambda_n[:, np.newaxis]
@@ -68,8 +69,7 @@ def combine_noise_simultaneously(clean, noises, snrs_db, config):
             total_noise += scaled_noise
     else:
         for noise, snr in zip(noises, snrs_db):
-            noise_EEG = noise[0]
-            rms_clean = rms(clean_EEG)
+            noise_EEG = zscore(noise[0], axis=1)
             rms_noise = rms(noise_EEG)
             lambda_n = (rms_clean / rms_noise) / (10 ** (snr / 20))
             lambda_n = lambda_n[:, np.newaxis]
@@ -94,25 +94,3 @@ def custom_bandpass_filter(data, lowcut, highcut, fs,
     padded_data = np.pad(data, (pad_length, pad_length), mode='edge')
     filtered_data = filtfilt(fir_coeff, 1.0, padded_data)
     return filtered_data[pad_length:pad_length + len(data)]
-
-def add_white_noise(data, snr_db):
-    d = data.copy()
-    l = data[1]
-    signal_power = np.mean(d ** 2)
-    noise_power = signal_power / (10 ** (snr_db / 10))
-    noise = np.random.normal(0, np.sqrt(noise_power), d.shape)
-    filtered_noise = np.zeros_like(noise)
-    for i in range(d.shape[0]):
-        filtered_noise[i] = custom_bandpass_filter(noise[i], 1, 80, 256)
-    d = d + filtered_noise
-    return d, l
-
-def create_white_noise_data(data):
-    SNRs = np.random.choice(np.arange(-7, 6.5, 0.5), (data.shape[0],))
-    noise_powers = np.mean(data ** 2) / (10 ** (SNRs / 10))
-    noises = np.zeros(data.shape)
-    for i in range(data.shape[0]):
-        noise = np.random.normal(0, np.sqrt(noise_powers[i]), data.shape[1])
-        noises[i] = custom_bandpass_filter(noise, 1, 80, 256)
-    d = data + noises
-    return d, 3 * np.ones(data.shape[0])
