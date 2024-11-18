@@ -1,4 +1,9 @@
 import os
+
+from keras.src.layers import LSTM, Dense, Dropout, Conv1D, MaxPooling1D, Flatten, Input
+from keras.src.models import Sequential
+from keras.src.callbacks import ModelCheckpoint, EarlyStopping, LearningRateScheduler
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 import pandas as pd
@@ -7,11 +12,10 @@ from sklearn.model_selection import KFold
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score, root_mean_squared_error
 import numpy as np
 import keras
-from keras.callbacks import ModelCheckpoint, EarlyStopping, LearningRateScheduler
-from keras.models import Sequential
-from keras.layers import Dense, Activation, Flatten, Dropout, Conv1D, MaxPooling1D
 import warnings
 warnings.filterwarnings("ignore")
+
+keras.utils.set_random_seed(812)
 
 def lr_scheduler(epoch, lr):
     decay_rate = 0.85
@@ -22,7 +26,7 @@ def lr_scheduler(epoch, lr):
 
 X_train = np.load('data/train/X.npy')
 y_train = np.load('data/train/Y.npy')
-k = 10
+k = 5
 kf = KFold(n_splits=k, shuffle=True, random_state=42)
 mse_scores = []
 mae_scores = []
@@ -43,13 +47,14 @@ for train_index, val_index in kf.split(X_train):
     model.add(Conv1D(512, 3, activation='relu'))
     model.add(MaxPooling1D(2))
     model.add(Flatten())
+    # model.add(LSTM(256))
     model.add(Dense(256, activation='relu'))
     model.add(Dropout(0.5))
     model.add(Dense(128, activation='relu'))
     model.add(Dense(1, activation='linear'))
     model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae', keras.metrics.R2Score()])
     early_stop = EarlyStopping(monitor='val_loss', patience=5, verbose=1)
-    callbacks_list = [early_stop, LearningRateScheduler(lr_scheduler, verbose=0)]
+    callbacks_list = [early_stop, LearningRateScheduler(lr_scheduler, verbose=0), ModelCheckpoint('checkpoints/best_model.keras', monitor='val_loss', save_best_only=True)]
     history = model.fit(X_train_fold, y_train_fold, epochs=100, batch_size=50, verbose=0,validation_data=(X_val_fold, y_val_fold), callbacks=callbacks_list)
     y_val_pred = model.predict(X_val_fold)
     mse = mean_squared_error(y_val_fold, y_val_pred)
