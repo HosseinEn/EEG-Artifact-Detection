@@ -43,26 +43,24 @@ for train_index, val_index in kf.split(X_train):
 
     inputs = Input(shape=(feature_size, 1))
 
-    x = Conv1D(512, 3, activation='relu')(inputs)
+    x = Conv1D(16, 3, activation='leaky_relu')(inputs)
     x = BatchNormalization()(x)
     x = MaxPooling1D(2)(x)
-    x = Conv1D(256, 3, activation='relu')(x)
+    x = Conv1D(32, 3, activation='leaky_relu')(x)
     x = BatchNormalization()(x)
     x = MaxPooling1D(2)(x)
-    x = Conv1D(128, 3, activation='relu')(x)
+    x = Conv1D(64, 3, activation='leaky_relu')(x)
     x = BatchNormalization()(x)
     x = MaxPooling1D(2)(x)
-    x = Conv1D(64, 3, activation='relu')(x)
-    x = BatchNormalization()(x)
-    x = MaxPooling1D(2)(x)
+
 
     x = Bidirectional(LSTM(256, return_sequences=True))(x)
     x = Bidirectional(LSTM(128, return_sequences=False))(x)
 
     x = Flatten()(x)
-    x = Dense(128,kernel_regularizer='l2', activation='relu')(x)
+    # x = Dense(128,kernel_regularizer='l2', activation='leaky_relu')(x)
     # x = Dropout(0.5)(x)
-    x = Dense(64, kernel_regularizer='l2', activation='relu')(x)
+    x = Dense(64, kernel_regularizer='l2', activation='leaky_relu')(x)
     outputs = Dense(1, activation='linear')(x)
 
     # Build the model
