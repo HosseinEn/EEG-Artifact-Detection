@@ -92,7 +92,7 @@ if __name__ == "__main__":
     parser.add_argument('--datapath', type=str, default='./data')
     parser.add_argument('--lower_snr', type=float, default=-7)
     parser.add_argument('--higher_snr', type=float, default=4.5)
-    parser.add_argument('--test_size', type=float, default=0.25)
+    parser.add_argument('--test_size', type=float, default=0.1)
     parser.add_argument('--val_size', type=float, default=0.1)
     args = parser.parse_args()
     DataNoiseCombiner(args)

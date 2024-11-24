@@ -1,8 +1,8 @@
 import os
 from keras.src.layers import LSTM, Dense, Dropout, Conv1D, MaxPooling1D, Flatten, Input, Attention, BatchNormalization, \
-    Bidirectional
+    Bidirectional, LeakyReLU
 from keras.src.models import Model
-from keras.src.callbacks import ModelCheckpoint, EarlyStopping, LearningRateScheduler
+from keras.src.callbacks import ModelCheckpoint, EarlyStopping, LearningRateScheduler, ReduceLROnPlateau
 from matplotlib import pyplot as plt
 from sklearn.preprocessing import StandardScaler
 import pandas as pd
@@ -12,6 +12,9 @@ import numpy as np
 import keras
 import warnings
 warnings.filterwarnings("ignore")
+
+os.makedirs('checkpoints', exist_ok=True)
+os.makedirs('output', exist_ok=True)
 
 keras.utils.set_random_seed(812)
 
@@ -43,13 +46,16 @@ for train_index, val_index in kf.split(X_train):
 
     inputs = Input(shape=(feature_size, 1))
 
-    x = Conv1D(16, 3, activation='leaky_relu')(inputs)
+    x = Conv1D(16, 3)(inputs)
+    x = LeakyReLU()(x)
     x = BatchNormalization()(x)
     x = MaxPooling1D(2)(x)
-    x = Conv1D(32, 3, activation='leaky_relu')(x)
+    x = Conv1D(32, 3)(x)
+    x = LeakyReLU()(x)
     x = BatchNormalization()(x)
     x = MaxPooling1D(2)(x)
-    x = Conv1D(64, 3, activation='leaky_relu')(x)
+    x = Conv1D(64, 3)(x)
+    x = LeakyReLU()(x)
     x = BatchNormalization()(x)
     x = MaxPooling1D(2)(x)
 
@@ -58,19 +64,20 @@ for train_index, val_index in kf.split(X_train):
     x = Bidirectional(LSTM(128, return_sequences=False))(x)
 
     x = Flatten()(x)
-    # x = Dense(128,kernel_regularizer='l2', activation='leaky_relu')(x)
+    x = Dense(128)(x)
+    x = LeakyReLU()(x)
     # x = Dropout(0.5)(x)
-    x = Dense(64, kernel_regularizer='l2', activation='leaky_relu')(x)
-    outputs = Dense(1, activation='linear')(x)
+    x = Dense(64)(x)
+    x = LeakyReLU()(x)
+    outputs = Dense(3, activation='linear')(x)
 
-    # Build the model
     model = Model(inputs=inputs, outputs=outputs)
 
-    # Compile the model
+
     model.compile(loss='mse', optimizer='adam', metrics=['mse', 'mae', keras.metrics.R2Score()])
 
-    # Callbacks
-    early_stop = EarlyStopping(monitor='val_loss', patience=10, verbose=1)
+
+    early_stop = EarlyStopping(monitor='val_loss', patience=5, verbose=1)
     callbacks_list = [
         early_stop,
         LearningRateScheduler(lr_scheduler, verbose=0),

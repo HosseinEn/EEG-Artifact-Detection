@@ -1,5 +1,6 @@
 import logging
 import numpy as np
+from scipy.stats import zscore
 
 class EarlyStopping:
     def __init__(self, patience=10, min_delta=0):
@@ -26,30 +27,22 @@ def setup_logging(log_file, log_level):
     logging.basicConfig(filename=log_file, level=log_level,
                         format='%(asctime)s - %(levelname)s - %(message)s', filemode='w')
 
-def create_noisy_data(clean_data, noises_dict, SNR_total):
-    P_signal = np.mean(clean_data ** 2)
-    P_noise_total = P_signal / (10 ** (SNR_total / 10))
-    noise_weights = np.random.dirichlet([1] * len(noises_dict))
-    P_noises = noise_weights * P_noise_total
-    lambdas = np.zeros(len(noises_dict))
-    for i, noise in enumerate(noises_dict.values()):
-        P_noise_orig = np.mean(noise ** 2)
-        lambdas[i] = np.sqrt(P_noises[i] / P_noise_orig)
-    noisy_data = clean_data.copy()
-    for i, noise in enumerate(noises_dict.values()):
-        noisy_data += lambdas[i] * noise
-    P_noisy = np.mean((noisy_data - clean_data) ** 2)
-    SNR_total_actual = 10 * np.log10(P_signal / P_noisy)
-    return noisy_data, SNR_total_actual
 
 def combine_data(clean_data, noises):
-    combined_noises, labels = [], []
-    for cln_data, white_noise, eog, emg in zip(clean_data, noises['White_noise'], noises['EOG'], noises['EMG']):
-        random_SNR = np.random.choice(np.arange(-7, 6.5, 0.5))
-        n, l = create_noisy_data(cln_data, {'White_noise': white_noise, 'EOG': eog, 'EMG': emg}, random_SNR)
-        combined_noises.append(n)
-        labels.append(l)
-    return combined_noises, labels
+    P_signal = np.mean(clean_data ** 2, axis=1)
+    num_samples = clean_data.shape[0]
+    combined_data = clean_data.copy()
+    total_noise = np.zeros_like(clean_data)
+    l = []
 
-
-
+    for name, noise in noises.items():
+        snr_db = np.random.choice(np.arange(-7, 6), (num_samples,))
+        l.append(snr_db)
+        P_noise = np.mean(noise ** 2, axis=1)
+        lambda_n = np.sqrt(P_signal / (10 ** (snr_db / 10)) / P_noise)
+        lambda_n = lambda_n[:, np.newaxis]
+        scaled_noise = noise * lambda_n
+        total_noise += scaled_noise
+    l = np.array(l).T
+    combined_data += total_noise
+    return combined_data, l
