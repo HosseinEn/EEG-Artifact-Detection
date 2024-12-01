@@ -254,10 +254,15 @@ class MLPTrainer:
         self._save_test_results(snr_value, test_acc, test_f1, test_precision, test_recall)
 
     def _plot_confusion_matrix(self, test_labels, test_preds, snr):
-        cm = confusion_matrix(test_labels, test_preds, labels=[0,1,2,3])
+        lbs = [0,1,2,3]
+        group_names = ['EEG', 'EOG', 'EMG', 'WN']
+        cm = confusion_matrix(test_labels, test_preds, labels=lbs)
+        group_counts = ['{0: 0.0f}'.format(value) for value in cm.flatten()]
+        group_percentages = ['{0:.2%}'.format(value) for value in cm.flatten() / np.sum(cm)]
+        labels = [f'{v1}\n{v2}' for v1, v2 in zip(group_counts, group_percentages)]
+        labels = np.asarray(labels).reshape(4, 4)
         plt.figure(figsize=(10, 7))
-        class_names = ['EEG', 'EOG', 'EMG','white_noise']
-        sns.heatmap(cm, annot=True, fmt='g', xticklabels=class_names, yticklabels=class_names)
+        sns.heatmap(confusion_matrix(test_labels, test_preds, labels=lbs), annot=labels, fmt='', xticklabels=group_names, yticklabels=group_names)
         plt.xlabel('Predicted')
         plt.ylabel('Actual')
         plt.title(f'Confusion Matrix, SNR: {snr}dB')
