@@ -6,7 +6,8 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 import numpy as np
 import keras
 from keras.src.callbacks import ModelCheckpoint, EarlyStopping, ReduceLROnPlateau, LearningRateScheduler
-from keras.src.layers import Dense, Activation, Dropout, Conv1D, MaxPooling1D, BatchNormalization, Add, GlobalAveragePooling1D
+from keras.src.layers import Dense, Activation, Dropout, Conv1D, MaxPooling1D, BatchNormalization, Add, \
+    GlobalAveragePooling1D, ReLU
 import warnings
 import matplotlib.pyplot as plt
 import termcolor
@@ -16,53 +17,62 @@ from sklearn.preprocessing import StandardScaler
 warnings.filterwarnings("ignore")
 
 COLS = {
-    0: 'WN',
-    1: 'EOG',
-    2: 'EMG'
+    0: 'EOG',
+    1: 'EMG'
 }
 
-def residual_block(x, filters, kernel_size=3, stride=1, use_conv_shortcut=False):
-    identity = x
-    if use_conv_shortcut:
-        identity = Conv1D(filters, 1, strides=stride, padding='same', kernel_regularizer=keras.regularizers.l2(0.01))(identity)
-        identity = BatchNormalization()(identity)
 
-    x = Conv1D(filters, kernel_size, strides=stride, padding='same', kernel_regularizer=keras.regularizers.l2(0.01))(x)
+
+
+def conv_block_1d(x, filters, kernel_size, strides=1):
+    """1D Convolutional Block"""
+    x = Conv1D(filters, kernel_size, strides=strides, padding='same', use_bias=False)(x)
     x = BatchNormalization()(x)
-    x = Activation('relu')(x)
-
-    x = Conv1D(filters, kernel_size, strides=1, padding='same', kernel_regularizer=keras.regularizers.l2(0.01))(x)
-    x = BatchNormalization()(x)
-
-    x = Add()([identity, x])
-    x = Activation('relu')(x)
+    x = ReLU()(x)
     return x
 
-def build_resnet(input_shape, num_blocks_per_stage=[2, 2, 2, 2]):
-    inputs = Input(shape=input_shape)
-    x = Conv1D(64, 3, strides=2, padding='same', kernel_regularizer=keras.regularizers.l2(0.01))(inputs)
+def identity_block_1d(x, filters, kernel_size, stride=1):
+    """Residual Block with Channel Projection (if needed)"""
+    shortcut = x
+    # If the input and output channels don't match, use a 1x1 Conv1D for the shortcut
+    if x.shape[-1] != filters or stride != 1:
+        shortcut = Conv1D(filters, kernel_size=1, strides=stride, padding='same', use_bias=False)(shortcut)
+        shortcut = BatchNormalization()(shortcut)
+
+    x = Conv1D(filters, kernel_size, strides=stride, padding='same', use_bias=False)(x)
     x = BatchNormalization()(x)
-    x = Activation('relu')(x)
-    x = MaxPooling1D(2, strides=2, padding='same')(x)
+    x = ReLU()(x)
+    x = Conv1D(filters, kernel_size, strides=1, padding='same', use_bias=False)(x)
+    x = BatchNormalization()(x)
+    x = Add()([shortcut, x])
+    x = ReLU()(x)
+    return x
 
-    filter_sizes = [64, 128, 256, 512]
-    for i, filters in enumerate(filter_sizes):
-        for j in range(num_blocks_per_stage[i]):
-            stride = 1
-            use_conv_shortcut = False
-            if j == 0 and i != 0:
-                stride = 2
-                use_conv_shortcut = True
-            x = residual_block(x, filters=filters, stride=stride, use_conv_shortcut=use_conv_shortcut)
 
+def resnet_18_1d(input_shape=(512, 1), num_classes=1):
+    inputs = Input(shape=input_shape)
+
+    # Initial Convolutional Layer
+    x = conv_block_1d(inputs, 64, kernel_size=7, strides=2)
+
+    # ResNet Blocks
+    x = identity_block_1d(x, 64, kernel_size=3)
+    x = identity_block_1d(x, 64, kernel_size=3)
+    x = identity_block_1d(x, 128, kernel_size=3)
+    x = identity_block_1d(x, 128, kernel_size=3)
+    x = identity_block_1d(x, 256, kernel_size=3)
+    x = identity_block_1d(x, 256, kernel_size=3)
+    x = identity_block_1d(x, 512, kernel_size=3)
+    x = identity_block_1d(x, 512, kernel_size=3)
+
+    # Global Average Pooling and Dense Layer
     x = GlobalAveragePooling1D()(x)
-    x = Dense(256, activation='relu')(x)
-    x = Dropout(0.5)(x)
-    x = Dense(128, activation='relu')(x)
-    outputs = Dense(3, activation='linear')(x)
+    outputs = Dense(num_classes, activation='linear')(x)
 
     model = Model(inputs, outputs)
     return model
+
+
 
 def lr_scheduler(epoch, lr):
     decay_rate = 0.85
@@ -92,7 +102,7 @@ for fold, (train_index, val_index) in enumerate(kf.split(X_train), 1):
     X_train_fold = X_train_fold.reshape(-1, input_shape[0], 1)
     X_val_fold = X_val_fold.reshape(-1, input_shape[0], 1)
 
-    model = build_resnet(input_shape)
+    model = resnet_18_1d(input_shape=input_shape, num_classes=2)
     optimizer = keras.optimizers.AdamW(
         learning_rate=0.001,
         weight_decay=0.004,
@@ -140,7 +150,7 @@ for fold, (train_index, val_index) in enumerate(kf.split(X_train), 1):
     r2_scores.append(r2)
     rmse_scores.append(rmse)
 
-    for i in range(3):
+    for i in range(2):
         mse_col = mean_squared_error(y_val_fold[:, i], y_val_pred[:, i])
         mae_col = mean_absolute_error(y_val_fold[:, i], y_val_pred[:, i])
         r2_col = r2_score(y_val_fold[:, i], y_val_pred[:, i])
