@@ -9,8 +9,13 @@ import matplotlib.pyplot as plt
 import warnings
 
 warnings.filterwarnings("ignore")
-
 np.random.seed(812)
+
+COLS = {
+    0: 'WN',
+    1: 'EOG',
+    2: 'EMG'
+}
 
 X_train = np.load('data/train/X.npy')
 y_train = np.load('data/train/Y.npy')

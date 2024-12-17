@@ -36,7 +36,7 @@ def combine_data(clean_data, noises):
     l = []
 
     for name, noise in noises.items():
-        snr_db = np.random.choice(np.arange(-7, 6), (num_samples,))
+        snr_db = np.random.choice(np.arange(-7, 6, 0.5), (num_samples,))
         l.append(snr_db)
         P_noise = np.mean(noise ** 2, axis=1)
         lambda_n = np.sqrt(P_signal / (10 ** (snr_db / 10)) / P_noise)

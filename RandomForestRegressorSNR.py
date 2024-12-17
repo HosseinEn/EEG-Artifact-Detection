@@ -2,6 +2,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import KFold
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 import numpy as np
+from sklearn.preprocessing import StandardScaler
 
 # Define k for k-fold cross-validation
 k = 5
@@ -16,7 +17,15 @@ for train_index, val_index in kf.split(X_train):
     X_train_fold, X_val_fold = X_train[train_index], X_train[val_index]
     y_train_fold, y_val_fold = y_train[train_index], y_train[val_index]
 
-    model = RandomForestRegressor(n_estimators=100, random_state=42)
+    scaler = StandardScaler()
+    X_train_fold = scaler.fit_transform(X_train_fold)
+    X_val_fold = scaler.transform(X_val_fold)
+
+    model = RandomForestRegressor(
+        n_estimators=200,
+        bootstrap=True,
+        random_state=42
+    )
     model.fit(X_train_fold, y_train_fold)
 
     y_val_pred = model.predict(X_val_fold)
