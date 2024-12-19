@@ -8,7 +8,7 @@ class ArtifactDetectionNN(nn.Module):
         super(ArtifactDetectionNN, self).__init__()
         self.fc1 = nn.Linear(input_dim, 128)
         self.fc2 = nn.Linear(128, 64)
-        self.fc3 = nn.Linear(64, 4)
+        self.fc3 = nn.Linear(64, 2)
         self.relu = nn.ReLU()
         self.dropout = nn.Dropout(0.6)
 
