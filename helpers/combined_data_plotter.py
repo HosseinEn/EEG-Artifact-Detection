@@ -45,7 +45,7 @@ freqs, psd = power_spectral_density(emg[0])
 plt.semilogy(freqs, psd, label='EEG+EMG')
 plt.xlabel('Frequency (Hz)', fontweight='bold')
 plt.ylabel('Log PSD (V^2/Hz)', fontweight='bold')
-plt.xlim([1,85])
+plt.xlim([1,80])
 plt.legend()
 plt.show()
 
