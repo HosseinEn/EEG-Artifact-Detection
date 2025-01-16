@@ -102,10 +102,10 @@ class MLPTrainer:
             self.train_dataset.features, pca = self._apply_pca(self.train_dataset.features)
             self._save_preprocessor(pca, 'pca.pkl')
             self.val_dataset.features = pca.transform(self.val_dataset.features)
-        if self.config.ica:
-            self.train_dataset.features, ica = self._apply_ica(self.train_dataset.features)
-            self._save_preprocessor(ica, 'ica.pkl')
-            self.val_dataset.features = ica.transform(self.val_dataset.features)
+        # if self.config.ica:
+        #     self.train_dataset.features, ica = self._apply_ica(self.train_dataset.features)
+        #     self._save_preprocessor(ica, 'ica.pkl')
+        #     self.val_dataset.features = ica.transform(self.val_dataset.features)
 
 
     def _scale_data(self, features):
@@ -113,10 +113,10 @@ class MLPTrainer:
         scaled_features = scaler.fit_transform(features)
         return scaled_features, scaler
 
-    def _apply_ica(self, features):
-        ica = FastICA(n_components=80, random_state=10)
-        ica_features = ica.fit_transform(features)
-        return ica_features, ica
+    # def _apply_ica(self, features):
+    #     ica = FastICA(n_components=80, random_state=10)
+    #     ica_features = ica.fit_transform(features)
+    #     return ica_features, ica
 
     def _apply_pca(self, features):
         pca = PCA(n_components=0.95)
