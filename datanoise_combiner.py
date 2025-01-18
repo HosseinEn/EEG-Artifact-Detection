@@ -63,13 +63,15 @@ class DataNoiseCombiner:
         emg_test_indices, emg_val_indices, emg_training_indices = self.split_indices(self.emg_indices, self.config.test_size, self.config.val_size)
         wn_test_indices, wn_val_indices, wn_training_indices = self.split_indices(self.white_noise_indices, self.config.test_size, self.config.val_size)
 
-        for snr in np.arange(self.config.lower_snr, self.config.higher_snr, 0.5):
+        for snr in np.arange(-2, self.config.higher_snr, 0.5):
             X_eog, y_eog = self.combine_and_save(clean_test_indices, eog_test_indices, self.data_clean, self.data_eog, snr)
             X_emg, y_emg = self.combine_and_save(clean_test_indices, emg_test_indices, self.data_clean, self.data_emg, snr)
-            X_wn, y_wn = self.combine_and_save(clean_test_indices, wn_test_indices, self.data_clean, self.white_noise, snr)
+            # X_wn, y_wn = self.combine_and_save(clean_test_indices, wn_test_indices, self.data_clean, self.white_noise, snr)
             X_clean, y_clean = self.data_clean[0][clean_test_indices], self.data_clean[1][clean_test_indices]
-            X = np.concatenate((X_eog, X_emg, X_wn, X_clean), axis=0)
-            y = np.concatenate((y_eog, y_emg, y_wn, y_clean), axis=0)
+            X = np.concatenate((X_eog, X_clean), axis=0)
+            y = np.concatenate((y_eog, y_clean), axis=0)
+            # X = np.concatenate((X_emg, X_clean), axis=0)
+            # y = np.concatenate((y_emg, y_clean), axis=0)
             self.save_data(X, y, "test", f"snr {snr}")
 
         subsets = [("val", clean_val_indices, wn_val_indices, eog_val_indices, emg_val_indices),
@@ -77,10 +79,10 @@ class DataNoiseCombiner:
         for subset_name, clean_indices, wn_indices, eog_indices, emg_indices in subsets:
             X_eog, y_eog = self.combine_and_save(clean_indices, eog_indices, self.data_clean, self.data_eog, None)
             X_emg, y_emg = self.combine_and_save(clean_indices, emg_indices, self.data_clean, self.data_emg, None)
-            X_wn, y_wn = self.combine_and_save(clean_indices, wn_indices, self.data_clean, self.white_noise, None)
+            # X_wn, y_wn = self.combine_and_save(clean_indices, wn_indices, self.data_clean, self.white_noise, None)
             X_clean, y_clean = self.data_clean[0][clean_indices], self.data_clean[1][clean_indices]
-            self.save_data(np.concatenate((X_eog, X_emg, X_clean, X_wn), axis=0),
-                           np.concatenate((y_eog, y_emg, y_clean, y_wn), axis=0), subset_name)
+            self.save_data(np.concatenate((X_eog, X_emg, X_clean), axis=0),
+                           np.concatenate((y_eog, y_emg, y_clean), axis=0), subset_name)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

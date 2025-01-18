@@ -54,6 +54,6 @@ def combine_waveforms(clean, noise, snr_db):
     lambda_snr = np.expand_dims(lambda_snr, 1)
 
     combined_data = clean_EEG + lambda_snr * noise_EEG
-    labels = array([noise[1][0]] * len(noise_EEG))
+    labels = array([1] * len(noise_EEG))
 
     return (combined_data, labels)

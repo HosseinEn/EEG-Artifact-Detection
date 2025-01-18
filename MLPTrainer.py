@@ -260,7 +260,7 @@ class MLPTrainer:
     def _plot_confusion_matrix(self, test_labels, test_preds, snr):
         cm = confusion_matrix(test_labels, test_preds, labels=[0,1])
         plt.figure(figsize=(10, 7))
-        class_names = ['Clean', 'Noisy']
+        class_names = ['Clean', 'Noise']
         sns.heatmap(cm, annot=True, fmt='g', xticklabels=class_names, yticklabels=class_names)
         plt.xlabel('Predicted')
         plt.ylabel('Actual')
