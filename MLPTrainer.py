@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from sklearn.decomposition import PCA, FastICA
 from sklearn.preprocessing import StandardScaler
-from models import ArtifactDetectionNN,ArtifactDetectionCNN,ConvNet
+from models import ArtifactDetectionNN,ArtifactDetectionCNN
 from dataset import EEGDataset
 from datanoise_combiner import DataNoiseCombiner
 from utils import calculate_metrics, setup_logging, EarlyStopping
@@ -62,8 +62,8 @@ class MLPTrainer:
         test_datasets = {}
         for snr_dir in test_dir.iterdir():
             if snr_dir.is_dir():
-                snr_value = snr_dir.name.split(' ')[-1]
-                test_datasets[snr_value] = EEGDataset(snr_dir)
+                # snr_value = snr_dir.name.split(' ')[-1]
+                test_datasets[snr_dir] = EEGDataset(snr_dir)
         return test_datasets
 
     def _setup_preprocessing(self):
@@ -84,6 +84,7 @@ class MLPTrainer:
     def _init_training_components(self):
         self.criterion = CrossEntropyLoss()
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.config.learning_rate)
+        self.scheduler = optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, mode='min', factor=0.1, patience=10, verbose=True)
         self.early_stopping = EarlyStopping(patience=20, min_delta=0)
         self.train_loader, self.val_loader = self._split_dataset()
 
@@ -186,6 +187,8 @@ class MLPTrainer:
             self.best_val_loss = val_loss
             self._save_checkpoint()
 
+        self.scheduler.step(val_loss)
+
     def _log_epoch_metrics(self, epoch, running_loss, all_labels, all_preds, phase):
         avg_loss = running_loss / len(self.train_loader if phase == 'Training' else self.val_loader)
         acc, f1, precision, recall = calculate_metrics(all_labels, all_preds)
@@ -209,7 +212,7 @@ class MLPTrainer:
     def test(self):
         test_accuracies, snr_values = [], []
 
-        self.test_datasets = dict(sorted(self.test_datasets.items(), key=lambda x: float(x[0])))
+        # self.test_datasets = dict(sorted(self.test_datasets.items(), key=lambda x: float(x[0])))
         for snr_value, test_dataset in self.test_datasets.items():
             test_loader = DataLoader(test_dataset, batch_size=self.config.batch_size, shuffle=False)
             self._load_best_model()
@@ -245,7 +248,7 @@ class MLPTrainer:
     def _log_test_metrics(self, test_loader, test_loss, snr_value, all_test_labels, all_test_preds, test_accuracies, snr_values):
         test_acc, test_f1, test_precision, test_recall = calculate_metrics(all_test_labels, all_test_preds)
         test_accuracies.append(test_acc)
-        snr_values.append(snr_value)
+        snr_values.append(snr_value.name)
         avg_test_loss = test_loss / len(test_loader)
         metrics_log = (f"[Test] SNR: {snr_value}, Loss: {avg_test_loss:.4f}, Accuracy: {test_acc:.4f}, "
                        f"F1: {test_f1:.4f}, Precision: {test_precision:.4f}, Recall: {test_recall:.4f}")
@@ -254,19 +257,19 @@ class MLPTrainer:
         self._save_test_results(snr_value, test_acc, test_f1, test_precision, test_recall)
 
     def _plot_confusion_matrix(self, test_labels, test_preds, snr):
-        lbs = [0,1,2,3]
-        group_names = ['EEG', 'EOG', 'EMG', 'WN']
+        lbs = [0,1,2]
+        group_names = ['EEG', 'EOG', 'EMG']
         cm = confusion_matrix(test_labels, test_preds, labels=lbs)
         group_counts = ['{0: 0.0f}'.format(value) for value in cm.flatten()]
         group_percentages = ['{0:.2%}'.format(value) for value in cm.flatten() / np.sum(cm)]
-        labels = [f'{v1}\n{v2}' for v1, v2 in zip(group_counts, group_percentages)]
-        labels = np.asarray(labels).reshape(4, 4)
+        labels = [f'{v1}' for v1, v2 in zip(group_counts, group_percentages)]
+        labels = np.asarray(labels).reshape(3, 3)
         plt.figure(figsize=(10, 7))
         sns.heatmap(confusion_matrix(test_labels, test_preds, labels=lbs), annot=labels, fmt='', xticklabels=group_names, yticklabels=group_names)
         plt.xlabel('Predicted')
         plt.ylabel('Actual')
         plt.title(f'Confusion Matrix, SNR: {snr}dB')
-        plt.savefig(os.path.join(Path(self.config.outputpath) / Path('cnf_matrices'), f'confusion_matrix_{snr}.png'))
+        plt.savefig(os.path.join(Path(self.config.outputpath) / Path('cnf_matrices'), f'confusion_matrix_{snr.name}.png'))
 
     def _save_test_results(self, snr_value, test_acc, test_f1, test_precision, test_recall):
         res_path = os.path.join(self.config.outputpath, f'results{run_datetime}.csv')
@@ -301,6 +304,7 @@ class MLPTrainer:
         plt.plot(self.val_accuracies, label='Validation Accuracy')
         plt.xlabel('Epoch',fontweight='bold')
         plt.ylabel('Accuracy',fontweight='bold')
+        plt.yticks(np.arange(0.6, 1.05, 0.05))
         plt.legend()
         plt.savefig(os.path.join(self.config.outputpath, f'combined_curves.png'))
         if not self.config.no_plot:

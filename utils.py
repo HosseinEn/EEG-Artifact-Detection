@@ -78,19 +78,3 @@ def combine_noise_simultaneously(clean, noises, snrs_db, config):
     combined_data += total_noise
     labels = np.full((num_samples,), noises[np.argmin(snrs_db)][1][0])
     return combined_data, labels
-
-def custom_bandpass_filter(data, lowcut, highcut, fs,
-                           l_trans_bandwidth=0.5,
-                           h_trans_bandwidth=0.5,
-                           filter_length=101,
-                           fir_window='hann',
-                           pad_length=100):
-    nyquist = 0.5 * fs
-    low = (lowcut - l_trans_bandwidth) / nyquist
-    high = (highcut + h_trans_bandwidth) / nyquist
-    if filter_length % 2 == 0:
-        filter_length += 1
-    fir_coeff = firwin(filter_length, [low, high], pass_zero=False, window=fir_window)
-    padded_data = np.pad(data, (pad_length, pad_length), mode='edge')
-    filtered_data = filtfilt(fir_coeff, 1.0, padded_data)
-    return filtered_data[pad_length:pad_length + len(data)]
