@@ -10,6 +10,9 @@ from scipy.signal import welch, butter, filtfilt
 
 def power_spectral_density(signal, fs=256):
     freqs, psd = welch(signal, fs=fs)
+    mask = (freqs >= 0) & (freqs <= 80)
+    freqs = freqs[mask]
+    psd = psd[mask]
     return psd
 
 def design_lowpass_filter(cutoff, fs=256, order=4):

@@ -218,7 +218,9 @@ class MLPTrainer:
             test_loader = DataLoader(test_dataset, batch_size=self.config.batch_size, shuffle=False)
             self._load_best_model()
             self._evaluate_test_set(test_loader, snr_value, test_accuracies, snr_values)
-
+        # save results in a csv file
+        # import pandas as pd
+        # pd.DataFrame({'SNR': snr_values, 'Accuracy': test_accuracies}).to_csv(os.path.join(self.config.outputpath, 'results_emg.csv'), index=False)
         self._plot_test_results(snr_values, test_accuracies)
 
     def _load_best_model(self):
@@ -259,6 +261,7 @@ class MLPTrainer:
 
     def _plot_confusion_matrix(self, test_labels, test_preds, snr):
         cm = confusion_matrix(test_labels, test_preds, labels=[0,1])
+        plt.rcParams.update({'font.size': 18})
         plt.figure(figsize=(10, 7))
         class_names = ['Clean', 'Noise']
         sns.heatmap(cm, annot=True, fmt='g', xticklabels=class_names, yticklabels=class_names)
