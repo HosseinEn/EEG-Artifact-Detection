@@ -264,7 +264,7 @@ class MLPTrainer:
         plt.rcParams.update({'font.size': 18})
         plt.figure(figsize=(10, 7))
         class_names = ['Clean', 'Noise']
-        sns.heatmap(cm, annot=True, fmt='g', xticklabels=class_names, yticklabels=class_names)
+        sns.heatmap(cm, annot=True, fmt='g', xticklabels=class_names, yticklabels=class_names,annot_kws={'size': 30})
         plt.xlabel('Predicted')
         plt.ylabel('Actual')
         plt.title(f'Confusion Matrix, SNR: {snr}dB')
